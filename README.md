@@ -36,7 +36,8 @@ ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
 Hardware & Einkaufsliste: [docs/scanner-hardware.md](docs/scanner-hardware.md) ·
-Rezepte & KI: [docs/recipes.md](docs/recipes.md)
+Rezepte & KI: [docs/recipes.md](docs/recipes.md) ·
+**Konfiguration (alle Einstellungen und Standardwerte): [docs/configuration.md](docs/configuration.md)**
 
 ## Schnellstart: lokal ausprobieren
 

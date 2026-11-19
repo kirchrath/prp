@@ -1,5 +1,7 @@
 # Lokal ausprobieren und entwickeln
 
+Alle Einstellungen und ihre Standardwerte: [configuration.md](configuration.md).
+
 Es gibt zwei Wege:
 
 * **A – Entwicklungsumgebung**: Infrastruktur in Docker, Services und Frontend direkt aus Maven/Vite.
