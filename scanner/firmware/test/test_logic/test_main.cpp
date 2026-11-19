@@ -8,6 +8,7 @@
 #include "direction.h"
 #include "feedback_logic.h"
 #include "gtin.h"
+#include "ota_command.h"
 #include "pairing.h"
 #include "protocol.h"
 #include "scan_queue.h"
@@ -248,6 +249,44 @@ void test_queue_keeps_button() {
   TEST_ASSERT_EQUAL(9, q.front().seq);
 }
 
+// ---------------------------------------------------------------- OTA
+
+void test_ota_command() {
+  const char* ok =
+      "{\"job\":\"j1\",\"version\":\"0.3.0\",\"size\":123456,\"port\":8088,\"path\":\"/ota/abc\","
+      "\"sha256\":\"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\"}";
+  logic::OtaCommand cmd;
+  TEST_ASSERT_TRUE(logic::parseOtaCommand(ok, strlen(ok), cmd));
+  TEST_ASSERT_EQUAL_STRING("j1", cmd.job.c_str());
+  TEST_ASSERT_EQUAL_STRING("0.3.0", cmd.version.c_str());
+  TEST_ASSERT_EQUAL(123456, cmd.size);
+  TEST_ASSERT_EQUAL(8088, cmd.port);
+  TEST_ASSERT_EQUAL_STRING("/ota/abc", cmd.path.c_str());
+
+  const char* bad[] = {
+      "not json",
+      "{\"version\":\"1\",\"size\":1,\"port\":1,\"path\":\"/ota/x\",\"sha256\":\"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\"}",
+      "{\"job\":\"j\",\"version\":\"1\",\"size\":1,\"port\":1,\"path\":\"/ota/x\",\"sha256\":\"00112233\"}",
+      "{\"job\":\"j\",\"version\":\"1\",\"size\":1,\"port\":1,\"path\":\"/ota/x\",\"sha256\":\"0011223344556677889XAABBCCDDEEFF00112233445566778899aabbccddeeff\"}",
+      "{\"job\":\"j\",\"version\":\"1\",\"size\":1,\"port\":1,\"path\":\"/etc/x\",\"sha256\":\"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\"}",
+      "{\"job\":\"j\",\"version\":\"1\",\"size\":0,\"port\":1,\"path\":\"/ota/x\",\"sha256\":\"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\"}",
+      "{\"job\":\"j\",\"version\":\"1\",\"size\":1,\"port\":70000,\"path\":\"/ota/x\",\"sha256\":\"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\"}",
+  };
+  for (const char* b : bad) {
+    logic::OtaCommand c;
+    TEST_ASSERT_FALSE_MESSAGE(logic::parseOtaCommand(b, strlen(b), c), b);
+  }
+}
+
+void test_ota_state_and_hex() {
+  TEST_ASSERT_EQUAL_STRING("{\"job\":\"j1\",\"state\":\"downloading\"}",
+                           logic::otaStateMessage("j1", "downloading", "").c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"job\":\"j1\",\"state\":\"failed\",\"error\":\"Prüfsumme falsch\"}",
+                           logic::otaStateMessage("j1", "failed", "Prüfsumme falsch").c_str());
+  const uint8_t digest[] = {0x00, 0x0f, 0xa5, 0xff};
+  TEST_ASSERT_EQUAL_STRING("000fa5ff", logic::toHex(digest, sizeof(digest)).c_str());
+}
+
 // ---------------------------------------------------------------- protocol
 
 void test_protocol() {
@@ -292,6 +331,8 @@ int main() {
   RUN_TEST(test_same_code_is_ignored_for_a_while);
   RUN_TEST(test_reader_frames_codes);
   RUN_TEST(test_gtin);
+  RUN_TEST(test_ota_command);
+  RUN_TEST(test_ota_state_and_hex);
   RUN_TEST(test_button_short_press_is_in);
   RUN_TEST(test_button_long_press_is_out_once);
   RUN_TEST(test_button_debounce);

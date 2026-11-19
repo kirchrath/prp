@@ -38,7 +38,7 @@ ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 ```
 
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
-Hardware & Einkaufsliste (Scanner, Knopfleiste für Gemüse & Co.): [docs/hardware.md](docs/hardware.md) ·
+Hardware, Einkaufsliste und Firmware-Updates per WLAN (Scanner, Knopfleiste für Gemüse & Co.): [docs/hardware.md](docs/hardware.md) ·
 Rezepte & KI: [docs/recipes.md](docs/recipes.md) ·
 MHD-Benachrichtigungen: [docs/notifications.md](docs/notifications.md) ·
 Datensicherung: [docs/backup.md](docs/backup.md) ·
@@ -59,7 +59,7 @@ dev/simulate-scanner.sh status                                       # Scanner o
 ## Inbetriebnahme auf dem Docker-Host
 
 Anforderungen: Docker Engine mit Compose v2 (≥ 2.24), empfohlen 8 GB RAM (gemessen ~3,5 GB Bedarf),
-mit lokaler KI (Ollama) 16 GB; Ports 80, 443 und 1883 frei.
+mit lokaler KI (Ollama) 16 GB; Ports 80, 443, 1883 (MQTT) und 8088 (Firmware-Updates der Geräte) frei.
 
 ### 1. DNS
 

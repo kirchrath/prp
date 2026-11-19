@@ -29,6 +29,8 @@ export function fakeApi(): FakeApi {
       deleteShoppingItem: ok(), deleteDoneShoppingItems: ok(),
     },
     scanners: { listScanners: ok([]), getScanner: ok(), updateScanner: ok(), deleteScanner: ok() },
+    firmware: { listFirmware: ok([]), uploadFirmware: ok(), deleteFirmware: ok() },
+    firmwareUpdates: { startFirmwareUpdate: ok(), startFirmwareRollout: ok({ started: 0 }) },
     recipes: {
       listRecipes: ok([]), listRecipeTags: ok([]), getRecipe: ok(), createRecipe: ok(), updateRecipe: ok(), deleteRecipe: ok(),
     },

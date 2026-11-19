@@ -43,6 +43,25 @@ nächsten Verbinden erneut registriert.
   `articleId` statt `ean`). Ohne Lagerort antwortet er mit `NO_LOCATION`, ohne zugeordneten Artikel mit
   `NO_ARTICLE`.
 
+## `…/ota` (Backend → Gerät) und `…/otastate` (Gerät → Backend)
+
+Firmware-Update, ausgelöst in der App:
+
+```json
+{"job": "7c1e…", "version": "0.3.0", "size": 1032192, "sha256": "9f2b…", "port": 8088, "path": "/ota/Xk3…"}
+```
+
+Das Gerät lädt `http://<Broker-Adresse>:<port><path>` (Token nur für diesen Auftrag, 15 min gültig) und
+installiert nur bei passender Größe und SHA-256. Fortschritt:
+
+```json
+{"job": "7c1e…", "state": "downloading"}
+{"job": "7c1e…", "state": "installed"}
+{"job": "7c1e…", "state": "failed", "error": "Prüfsumme falsch – Firmware nicht installiert"}
+```
+
+Nach `installed` startet das Gerät neu; meldet es in `…/status` die neue Version, ist das Update erfolgreich.
+
 ## `…/feedback` (Backend → Scanner)
 
 ```json

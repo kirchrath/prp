@@ -13,6 +13,13 @@
  */
 
 import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
+import type { OtaJobDto } from './OtaJobDto';
+import {
+    OtaJobDtoFromJSON,
+    OtaJobDtoFromJSONTyped,
+    OtaJobDtoToJSON,
+    OtaJobDtoToJSONTyped,
+} from './OtaJobDto';
 import type { ButtonDto } from './ButtonDto';
 import {
     ButtonDtoFromJSON,
@@ -67,6 +74,10 @@ export interface ScannerListDto {
      * 
      */
     buttons: Array<ButtonDto>;
+    /**
+     * 
+     */
+    ota?: OtaJobDto;
 }
 
 /**
@@ -111,6 +122,7 @@ export function ScannerListDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'lastSeen': json['lastSeen'] == null ? undefined : (parseDateTime(json['lastSeen'])),
         'kind': json['kind'],
         'buttons': ((json['buttons'] as Array<any>).map(ButtonDtoFromJSON)),
+        'ota': json['ota'] == null ? undefined : OtaJobDtoFromJSON(json['ota']),
     };
 }
 
@@ -135,6 +147,7 @@ export function ScannerListDtoToJSONTyped(value?: ScannerListDto | null, ignoreD
         'lastSeen': value['lastSeen'] == null ? value['lastSeen'] : serializeDateTime(value['lastSeen']),
         'kind': value['kind'],
         'buttons': ((value['buttons'] as Array<any>).map(ButtonDtoToJSON)),
+        'ota': OtaJobDtoToJSON(value['ota']),
     };
 }
 

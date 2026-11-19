@@ -110,7 +110,7 @@ describe('ApiContext', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<AuthenticatedApiProvider><ShowApi /></AuthenticatedApiProvider>);
     render(<AnonymousApiProvider><ShowApi /></AnonymousApiProvider>);
-    expect(screen.getAllByText('14')).toHaveLength(2);
+    expect(screen.getAllByText('16')).toHaveLength(2);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls.map((c) => c[1].headers.Authorization)).toEqual(['Bearer token-1', undefined]);
     vi.unstubAllGlobals();

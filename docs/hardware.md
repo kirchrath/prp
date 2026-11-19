@@ -50,7 +50,7 @@ Summe etwa **20–35 €** pro Knopfleiste (bei 4–8 Tastern).
 | Breadboard + Steckkabel (Jumper m-w/w-w) | Aufbau auf dem Tisch, bevor fest verdrahtet wird |
 | Lötkolben, Seitenschneider, Abisolierzange | Stiftleisten und feste Verdrahtung |
 | Multimeter | hilfreich bei der Fehlersuche |
-| Datenfähiges USB-Kabel | zum Flashen (manche Ladekabel übertragen keine Daten) |
+| Datenfähiges USB-Kabel | zum ersten Flashen (manche Ladekabel übertragen keine Daten); danach Updates per WLAN |
 
 Wer mehrere Geräte baut: ESP32-Boards, RGB-LEDs, Widerstände, Buzzer und Taster gibt es günstig in
 Mehrfachpackungen; beide Gerätearten nutzen dieselben Board-, LED- und Buzzer-Typen.
@@ -176,11 +176,36 @@ Ohne Hardware ausprobieren: `DEVICE=knopf-dev dev/simulate-scanner.sh buttons`, 
 
 ---
 
+# Firmware-Updates per WLAN (OTA, beide Geräte)
+
+Nach dem ersten Flashen per USB kommen neue Versionen über die App:
+
+1. Firmware bauen: `pio run -e esp32dev` (Scanner) bzw. `pio run -e buttons` (Knopfleiste). Die Version steht in
+   `platformio.ini` (`FIRMWARE_VERSION`) – für jedes Update erhöhen.
+2. In der App unter *Einstellungen → Geräte → Firmware* die Datei `.pio/build/<env>/firmware.bin` hochladen.
+   Geräteart und Version liest der Server aus der Datei (Kennung `INVFW|scanner|0.3.0|`); eine
+   Knopfleisten-Firmware kann so nicht auf einem Scanner landen.
+3. Am Gerät „Aktualisieren auf …“ oder „Alle Scanner/Knopfleisten aktualisieren“.
+
+Das Gerät lädt das Image vom Docker-Host (`http://<Broker-Adresse>:8088/ota/<einmal-token>`, Port `OTA_PORT`),
+prüft Größe und SHA-256 (die Prüfsumme kommt über die angemeldete MQTT-Verbindung) und schreibt es in die
+zweite App-Partition. Nur wenn alles stimmt, wird umgeschaltet und neu gestartet – sonst läuft die alte
+Firmware weiter. Während des Updates leuchtet die LED weiß. Der Status steht in der Geräteliste
+(angefordert → lädt → installiert → erfolgreich bzw. fehlgeschlagen mit Grund); nach 15 Minuten ohne
+Rückmeldung gilt ein Update als fehlgeschlagen.
+
+**Einmalig:** OTA braucht zwei App-Partitionen (`board_build.partitions = min_spiffs.csv`, je 1,875 MB).
+Geräte, die noch mit der alten Partitionstabelle geflasht sind, müssen **einmal per USB** neu geflasht werden;
+ab dann geht alles per WLAN. Voraussetzung: Docker-Host ist aus dem Geräte-WLAN auf Port 8088 erreichbar
+(Firewall), Broker und device-service laufen auf demselben Host.
+
+---
+
 # Signale (beide Geräte)
 
 | LED | Ton | Bedeutung | Scanner | Knopfleiste |
 |---|---|---|---|---|
-| weiß (gedimmt) | – | gesendet, warte auf Server (bei unbekanntem Artikel bis 20 s) | ✓ | ✓ |
+| weiß (gedimmt) | – | gesendet, warte auf Server (bei unbekanntem Artikel bis 20 s); Firmware-Update läuft | ✓ | ✓ |
 | grün | hoch | eingelagert | ✓ | ✓ |
 | gelb | 2 × hoch | eingelagert, Artikel unbekannt → in der Inbox ergänzen | ✓ | – |
 | blau | mittel | ausgelagert | ✓ | ✓ |
@@ -190,5 +215,5 @@ Ohne Hardware ausprobieren: `DEVICE=knopf-dev dev/simulate-scanner.sh buttons`, 
 | orange blinkend | – | kein WLAN/MQTT | ✓ | ✓ |
 
 Die hardwareunabhängige Logik beider Geräte – Richtungserkennung, Zuordnung Barcode ↔ Bewegung,
-Barcode-Erkennung, EAN-Prüfung, Entprellen und kurz/lang, Feedback-Timeout, Offline-Puffer und
-MQTT-Nachrichten – liegt in `scanner/firmware/lib/scanner_logic` und hat keine Arduino-Abhängigkeit.
+Barcode-Erkennung, EAN-Prüfung, Entprellen und kurz/lang, Feedback-Timeout, Offline-Puffer,
+OTA-Befehle und MQTT-Nachrichten – liegt in `scanner/firmware/lib/scanner_logic` und hat keine Arduino-Abhängigkeit.

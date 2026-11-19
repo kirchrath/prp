@@ -16,6 +16,8 @@
 #include "button_press.h"
 #include "feedback.h"
 #include "feedback_logic.h"
+#include "ota.h"
+#include "ota_command.h"
 #include "pins.h"
 #include "protocol.h"
 #include "scan_queue.h"
@@ -24,6 +26,9 @@
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "dev"
 #endif
+
+// identifies the image for OTA uploads (device kind + version), see device-service FirmwareImages
+static const char FIRMWARE_MARKER[] = "INVFW|buttons|" FIRMWARE_VERSION "|";
 
 using logic::Direction;
 using logic::Signal;
@@ -110,7 +115,16 @@ static bool publishPress(int button, Direction dir, uint32_t pressSeq) {
   return mqtt.publish(topic("button").c_str(), logic::buttonMessage(button, dir, pressSeq, bootId).c_str());
 }
 
-static void onMessage(char *, byte *payload, unsigned int length) {
+static void onMessage(char *topicName, byte *payload, unsigned int length) {
+  if (String(topicName).endsWith("/ota")) {
+    logic::OtaCommand cmd;
+    if (logic::parseOtaCommand(reinterpret_cast<const char *>(payload), length, cmd)) {
+      otaInstall(cmd, settings.mqttHost, mqtt, topic("otastate"));
+    } else {
+      Serial.println("Invalid OTA command");
+    }
+    return;
+  }
   logic::Feedback feedback;
   if (!logic::parseFeedback(reinterpret_cast<const char *>(payload), length, feedback)) return;
   Serial.printf("Feedback seq=%u result=%s article=%s\n", feedback.seq, feedback.result.c_str(), feedback.article.c_str());
@@ -132,6 +146,7 @@ static void ensureMqtt() {
     return;
   }
   mqtt.subscribe(topic("feedback").c_str(), 1);
+  mqtt.subscribe(topic("ota").c_str(), 1);
   std::string status = logic::statusMessage(FIRMWARE_VERSION, WiFi.localIP().toString().c_str(), WiFi.RSSI(), bootId,
                                             "buttons");
   mqtt.publish(willTopic.c_str(), status.c_str(), true);
@@ -169,6 +184,7 @@ void setup() {
 
   loadSettings(settings);
   Serial.printf("Inventory button box %s, device %s\n", FIRMWARE_VERSION, settings.deviceId.c_str());
+  Serial.println(FIRMWARE_MARKER);
   startWifi(digitalRead(PIN_CONFIG_BUTTON) == LOW);
 
   mqtt.setServer(settings.mqttHost.c_str(), settings.mqttPort);

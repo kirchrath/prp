@@ -17,6 +17,8 @@ export interface Api {
   movements: stock.MovementsApi;
   shopping: shopping.ShoppingItemsApi;
   scanners: device.ScannersApi;
+  firmware: device.FirmwareApi;
+  firmwareUpdates: device.FirmwareUpdatesApi;
   recipes: recipe.RecipesApi;
   recipeCategories: recipe.RecipeCategoriesApi;
   recipeImports: recipe.RecipeImportsApi;
@@ -32,6 +34,7 @@ export function createApi(token: () => string | undefined): Api {
   const catalogConfig = new catalog.Configuration(params);
   const stockConfig = new stock.Configuration(params);
   const recipeConfig = new recipe.Configuration(params);
+  const deviceConfig = new device.Configuration(params);
   const notificationConfig = new notification.Configuration(params);
   return {
     articles: new catalog.ArticlesApi(catalogConfig),
@@ -41,7 +44,9 @@ export function createApi(token: () => string | undefined): Api {
     bookings: new stock.BookingsApi(stockConfig),
     movements: new stock.MovementsApi(stockConfig),
     shopping: new shopping.ShoppingItemsApi(new shopping.Configuration(params)),
-    scanners: new device.ScannersApi(new device.Configuration(params)),
+    scanners: new device.ScannersApi(deviceConfig),
+    firmware: new device.FirmwareApi(deviceConfig),
+    firmwareUpdates: new device.FirmwareUpdatesApi(deviceConfig),
     recipes: new recipe.RecipesApi(recipeConfig),
     recipeCategories: new recipe.RecipeCategoriesApi(recipeConfig),
     recipeImports: new recipe.RecipeImportsApi(recipeConfig),

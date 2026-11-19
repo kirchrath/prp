@@ -130,6 +130,7 @@ ausgegeben), `delete <name>` entfernt sie; danach lädt Mosquitto die Dateien au
 | `DB_PASSWORD` | `change-me` | PostgreSQL `db`, alle Services | Passwort des Datenbankbenutzers `inventory`. Wird beim ersten Start der Datenbank gesetzt. **Vorher ändern.** |
 | `MQTT_PASSWORD` | `change-me` | device-service | Passwort des MQTT-Benutzers `device-service` (ausgegeben von `mqtt-user.sh add device-service`). |
 | `LOOKUP_ENABLED` | `true` | catalog-service | Unbekannte Barcodes in Open Food Facts, Open Products Facts und Open Beauty Facts nachschlagen. `false`: keine Internetabfragen, unbekannte Barcodes landen direkt in der Inbox. |
+| `OTA_PORT` | `8088` | device-service | Port auf dem Docker-Host, von dem die Geräte Firmware-Updates laden (nur `/ota/<token>`). Aus dem Geräte-WLAN erreichbar machen. |
 | `NTFY_TOPIC` | `vorrat` | notification-service | ntfy-Topic des Haushalts. |
 | `NTFY_TOKEN` | leer | notification-service | Token des ntfy-Kontos `inventory` (`infra/scripts/ntfy-user.sh service`). Leer = anonym (scheitert am `deny-all` des infra-Stacks). |
 | `AI_PROVIDER` | `ollama` | recipe-service | KI für Rezept-Importe: `ollama`, `anthropic` oder `openai`. Ohne erreichbare KI funktioniert alles außer dem Import. |
@@ -233,6 +234,9 @@ Ein Speicherlimit lässt sich per `mem_limit` in der Override-Datei setzen.
 | `device.mqtt.client-id` | `MQTT_CLIENT_ID` | `device-service` | Basis der MQTT-Client-IDs (`-in` zum Empfangen, `-out` zum Senden). Bei mehreren Instanzen eindeutig wählen. |
 | `device.mqtt.username` / `password` | `MQTT_USERNAME` / `MQTT_PASSWORD` | `device-service` / leer | Anmeldung am Broker; leerer Benutzername = anonym (nur Entwicklung). |
 | `device.mqtt.topic-prefix` | `MQTT_TOPIC_PREFIX` | `inventory/scanner` | Topic-Präfix; muss zur ACL und zur Firmware passen. |
+| `device.ota.port` | `OTA_PORT` | `8088` | Download-Server für Firmware-Updates (eigener Port, nur `/ota/<token>`). |
+| `device.ota.token-validity` | `DEVICE_OTA_TOKENVALIDITY` | `15m` | So lange darf ein Gerät ein angestoßenes Update laden und installieren. |
+| `spring.servlet.multipart.max-file-size` | – | `4MB` | Größe hochgeladener Firmware-Dateien (die OTA-Partition fasst 1,875 MB). |
 
 Fest im Code: QoS 1, automatische Wiederverbindung, Keep-Alive 30 s, Clean Session.
 

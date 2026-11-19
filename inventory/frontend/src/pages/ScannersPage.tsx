@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../api/ApiContext';
 import { formatDateTime } from '../api/dates';
 import type { ArticleListDto } from '../api/catalog';
-import type { ButtonDto, ScannerListDto } from '../api/device';
+import { StartFirmwareRolloutKindEnum, type ButtonDto, type FirmwareListDto, type ScannerListDto } from '../api/device';
 import type { LocationListDto } from '../api/stock';
 import { LocationSelect } from '../components/LocationSelect';
 import { useNotify } from '../components/Notifications';
@@ -14,6 +14,9 @@ export function ScannersPage() {
   const scanners = useAsync(() => api.scanners.listScanners(), [api]);
   const locations = useAsync(() => api.locations.listLocations(), [api]);
   const articles = useAsync(() => api.articles.listArticles({}), [api]);
+  const firmware = useAsync(() => api.firmware.listFirmware(), [api]);
+  // newest firmware per device kind (the list is sorted newest first)
+  const latest = (kind: string) => firmware.data?.find((f) => f.kind === kind);
 
   // refresh the online state periodically
   useEffect(() => {
@@ -33,7 +36,8 @@ export function ScannersPage() {
       <div className="columns is-multiline">
         {scanners.data.map((s) => (
           <div key={s.id} className="column is-6">
-            <ScannerCard scanner={s} locations={locations.data ?? []} articles={articles.data ?? []} onChanged={scanners.reload} />
+            <ScannerCard scanner={s} locations={locations.data ?? []} articles={articles.data ?? []} latest={latest(s.kind)}
+              onChanged={scanners.reload} />
           </div>
         ))}
       </div>
@@ -49,9 +53,108 @@ export function ScannersPage() {
         drücken = 1 einlagern, lang drücken (1 s) = 1 entnehmen.
       </p>
       {content}
+      <FirmwareBox firmware={firmware.data ?? []} onChanged={() => { firmware.reload(); scanners.reload(); }} />
     </>
   );
 }
+
+const KIND_LABEL: Record<string, string> = { SCANNER: 'Scanner', BUTTONS: 'Knopfleisten' };
+
+/** Upload firmware images and roll them out to all devices of a kind. */
+function FirmwareBox({ firmware, onChanged }: { firmware: FirmwareListDto[]; onChanged: () => void }) {
+  const api = useApi();
+  const { notify, fail } = useNotify();
+  const [busy, setBusy] = useState(false);
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      await api.firmware.uploadFirmware({ file });
+      notify('success', `${file.name} hochgeladen`);
+      onChanged();
+    } catch (e) {
+      await fail(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rollout = async (kind: string) => {
+    try {
+      const { started } = await api.firmwareUpdates.startFirmwareRollout({ kind: kind as StartFirmwareRolloutKindEnum });
+      notify('success', started === 0 ? 'Alle erreichbaren Geräte sind aktuell' : `Update auf ${started} Gerät(en) gestartet`);
+      onChanged();
+    } catch (e) {
+      await fail(e);
+    }
+  };
+
+  const remove = async (f: FirmwareListDto) => {
+    try {
+      await api.firmware.deleteFirmware({ id: f.id, version: f.version });
+      onChanged();
+    } catch (e) {
+      await fail(e);
+    }
+  };
+
+  return (
+    <div className="box mt-5">
+      <h2 className="title is-5">Firmware</h2>
+      <p className="mb-3 has-text-grey">
+        Neue Firmware (<code>.pio/build/esp32dev/firmware.bin</code> bzw. <code>…/buttons/firmware.bin</code>) hier
+        hochladen und dann am Gerät „Aktualisieren“ wählen. Geräteart und Version stehen in der Datei selbst.
+      </p>
+      <div className="file mb-4">
+        <label className="file-label">
+          <input className="file-input" type="file" accept=".bin" aria-label="Firmware hochladen" disabled={busy}
+            onChange={(e) => void upload(e.target.files?.[0])} />
+          <span className={`file-cta ${busy ? 'is-loading' : ''}`}>
+            <span className="file-label">Firmware hochladen …</span>
+          </span>
+        </label>
+      </div>
+      {firmware.length === 0 ? (
+        <p className="has-text-grey">Noch keine Firmware hochgeladen.</p>
+      ) : (
+        <table className="table is-fullwidth is-narrow">
+          <tbody>
+            {firmware.map((f) => (
+              <tr key={f.id}>
+                <td>{KIND_LABEL[f.kind] ?? f.kind}</td>
+                <td><strong>{f.firmwareVersion}</strong></td>
+                <td className="is-size-7 has-text-grey">
+                  {formatDateTime(f.createdDate)} · {Math.round(f.size / 1024)} KB
+                </td>
+                <td className="has-text-right">
+                  <button className="delete" aria-label={`Firmware ${f.firmwareVersion} löschen`} onClick={() => void remove(f)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div className="buttons">
+        {Object.keys(KIND_LABEL)
+          .filter((kind) => firmware.some((f) => f.kind === kind))
+          .map((kind) => (
+            <button key={kind} className="button is-small" onClick={() => void rollout(kind)}>
+              Alle {KIND_LABEL[kind]} aktualisieren
+            </button>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+const OTA_STATE: Record<string, { label: string; tag: string }> = {
+  REQUESTED: { label: 'Update angefordert', tag: 'is-info is-light' },
+  DOWNLOADING: { label: 'Update wird geladen', tag: 'is-info is-light' },
+  INSTALLED: { label: 'Update installiert, Neustart', tag: 'is-info is-light' },
+  SUCCESS: { label: 'Update erfolgreich', tag: 'is-success is-light' },
+  FAILED: { label: 'Update fehlgeschlagen', tag: 'is-danger is-light' },
+};
 
 const BUTTONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -62,10 +165,11 @@ interface CardProps {
   scanner: ScannerListDto;
   locations: LocationListDto[];
   articles: ArticleListDto[];
+  latest?: FirmwareListDto;
   onChanged: () => void;
 }
 
-function ScannerCard({ scanner, locations, articles, onChanged }: CardProps) {
+function ScannerCard({ scanner, locations, articles, latest, onChanged }: CardProps) {
   const api = useApi();
   const { notify, fail } = useNotify();
   const [name, setName] = useState(scanner.name ?? '');
@@ -88,6 +192,11 @@ function ScannerCard({ scanner, locations, articles, onChanged }: CardProps) {
       await fail(e);
     }
   };
+
+  const updateAvailable = latest !== undefined && latest.firmwareVersion !== scanner.firmwareVersion;
+  const ota = scanner.ota;
+  const update = () =>
+    run(() => api.firmwareUpdates.startFirmwareUpdate({ id: scanner.id }), `Update auf ${latest?.firmwareVersion} gestartet`);
 
   const save = () =>
     run(async () => {
@@ -121,6 +230,24 @@ function ScannerCard({ scanner, locations, articles, onChanged }: CardProps) {
           <br />
           Zuletzt gesehen: {formatDateTime(scanner.lastSeen)}
         </p>
+        {(updateAvailable || ota) && (
+          <div className="mb-3">
+            {ota && (
+              <p className="mb-1">
+                <span className={`tag ${OTA_STATE[ota.state].tag}`}>
+                  {OTA_STATE[ota.state].label} ({ota.targetVersion})
+                </span>
+                {ota.error && <span className="help is-danger">{ota.error}</span>}
+              </p>
+            )}
+            {updateAvailable && (
+              <button className="button is-small is-link is-light" disabled={!scanner.online} onClick={update}
+                title={scanner.online ? undefined : 'Gerät ist offline'}>
+                Aktualisieren auf {latest.firmwareVersion}
+              </button>
+            )}
+          </div>
+        )}
         <div className="field">
           <label className="label is-small">
             Name
