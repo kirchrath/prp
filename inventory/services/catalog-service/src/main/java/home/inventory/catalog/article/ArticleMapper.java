@@ -27,7 +27,7 @@ public final class ArticleMapper {
     }
 
     private static ArticleDataDto data(Article a) {
-        return new ArticleDataDto(a.name(), a.brand(), a.packageSize(), a.imageUrl(), a.categoryId(), a.minStock(),
+        return new ArticleDataDto(a.name(), a.brand(), a.packageSize(), a.contentAmount(), a.contentUnit(), a.imageUrl(), a.categoryId(), a.minStock(),
                 eans(a), a.status(), a.source(), a.mergedInto());
     }
 

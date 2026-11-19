@@ -427,6 +427,14 @@
             "maxLength" : 100,
             "minLength" : 0
           },
+          "contentAmount" : {
+            "type" : "number",
+            "exclusiveMinimum" : 0
+          },
+          "contentUnit" : {
+            "type" : "string",
+            "enum" : [ "GRAM", "MILLILITER", "PIECE" ]
+          },
           "imageUrl" : {
             "type" : "string",
             "maxLength" : 1000,
@@ -569,6 +577,13 @@
           },
           "packageSize" : {
             "type" : "string"
+          },
+          "contentAmount" : {
+            "type" : "number"
+          },
+          "contentUnit" : {
+            "type" : "string",
+            "enum" : [ "GRAM", "MILLILITER", "PIECE" ]
           },
           "imageUrl" : {
             "type" : "string"

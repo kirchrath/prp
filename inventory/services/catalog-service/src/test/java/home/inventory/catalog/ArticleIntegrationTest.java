@@ -53,6 +53,8 @@ class ArticleIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get("/api/catalog/articles/" + id).with(USER))
                 .andExpect(jsonPath("$.data.name").value(name))
                 .andExpect(jsonPath("$.data.packageSize").value("500 g"))
+                .andExpect(jsonPath("$.data.contentAmount").value(500))
+                .andExpect(jsonPath("$.data.contentUnit").value("GRAM"))
                 .andExpect(jsonPath("$.data.imageUrl").doesNotExist())
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data.source").value("MANUAL"))
@@ -83,6 +85,21 @@ class ArticleIntegrationTest extends AbstractIntegrationTest {
         List<JsonNode> events = kafka.await("catalog_article", id.toString(), 3);
         assertThat(events.getLast().get("audit").get("deleted").asBoolean()).isTrue();
         assertThat(events.getLast().get("data").get("minStock").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void explicitPackageContentWinsAndNeedsUnit() throws Exception {
+        UUID id = created(json(post("/api/catalog/articles"), """
+                {"data":{"name":"Eier","packageSize":"10er Pack","contentAmount":10.0,"contentUnit":"PIECE","minStock":0,"eans":[]}}"""));
+        mvc.perform(get("/api/catalog/articles/" + id).with(USER))
+                .andExpect(jsonPath("$.data.contentAmount").value(10))
+                .andExpect(jsonPath("$.data.contentUnit").value("PIECE"));
+        mvc.perform(json(post("/api/catalog/articles"), "{\"data\":{\"name\":\"X\",\"contentAmount\":1,\"minStock\":0,\"eans\":[]}}"))
+                .andExpect(status().isConflict());
+        mvc.perform(json(post("/api/catalog/articles"), "{\"data\":{\"name\":\"X\",\"contentUnit\":\"GRAM\",\"minStock\":0,\"eans\":[]}}"))
+                .andExpect(status().isConflict());
+        UUID unknown = created(json(post("/api/catalog/articles"), "{\"data\":{\"name\":\"Y\",\"packageSize\":\"Sack\",\"minStock\":0,\"eans\":[]}}"));
+        mvc.perform(get("/api/catalog/articles/" + unknown).with(USER)).andExpect(jsonPath("$.data.contentAmount").doesNotExist());
     }
 
     @Test
@@ -138,7 +155,14 @@ class ArticleIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get("/api/catalog/articles/lookup/" + ean).with(USER))
                 .andExpect(jsonPath("$.found").value(true))
                 .andExpect(jsonPath("$.name").value("H-Milch"))
+                .andExpect(jsonPath("$.contentAmount").value(1000))
+                .andExpect(jsonPath("$.contentUnit").value("MILLILITER"))
                 .andExpect(jsonPath("$.existingArticleId").value(id.toString()));
+        String noSize = ean();
+        when(lookup.lookup(noSize)).thenReturn(Optional.of(new ProductInfo("Tee", null, null, null, ArticleSource.OPEN_FOOD_FACTS)));
+        mvc.perform(get("/api/catalog/articles/lookup/" + noSize).with(USER))
+                .andExpect(jsonPath("$.found").value(true))
+                .andExpect(jsonPath("$.contentAmount").doesNotExist());
         mvc.perform(get("/api/catalog/articles/lookup/" + ean()).with(USER))
                 .andExpect(jsonPath("$.found").value(false))
                 .andExpect(jsonPath("$.existingArticleId").doesNotExist());
@@ -154,6 +178,16 @@ class ArticleIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Reis"))
                 .andExpect(jsonPath("$.brand").value("Uncle"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
+        String id0 = com.jayway.jsonpath.JsonPath.read(mvc.perform(get("/api/catalog/articles/by-ean/" + known).with(USER))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(get("/api/catalog/articles/" + id0).with(USER))
+                .andExpect(jsonPath("$.data.contentAmount").value(1000))
+                .andExpect(jsonPath("$.data.contentUnit").value("GRAM"));
+
+        String withoutSize = ean();
+        when(lookup.lookup(withoutSize)).thenReturn(Optional.of(new ProductInfo("Tee", null, null, null, ArticleSource.OPEN_FOOD_FACTS)));
+        articles.resolvePendingBarcode(withoutSize);
+        mvc.perform(get("/api/catalog/articles/by-ean/" + withoutSize).with(USER)).andExpect(jsonPath("$.name").value("Tee"));
 
         String unknown = ean();
         articles.resolvePendingBarcode(unknown);

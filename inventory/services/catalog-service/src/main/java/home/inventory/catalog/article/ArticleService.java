@@ -89,8 +89,13 @@ public class ArticleService {
         String code = ean.trim();
         UUID existing = findActiveByEan(code).map(Article::id).orElse(null);
         return lookup.lookup(code)
-                .map(i -> new ProductLookupDto(true, i.name(), i.brand(), i.packageSize(), i.imageUrl(), i.source(), existing))
-                .orElseGet(() -> new ProductLookupDto(false, null, null, null, null, null, existing));
+                .map(i -> {
+                    PackageContent content = PackageContentParser.parse(i.packageSize()).orElse(null);
+                    return new ProductLookupDto(true, i.name(), i.brand(), i.packageSize(),
+                            content == null ? null : content.amount(), content == null ? null : content.unit(),
+                            i.imageUrl(), i.source(), existing);
+                })
+                .orElseGet(() -> new ProductLookupDto(false, null, null, null, null, null, null, null, existing));
     }
 
     public UUID create(ArticleSaveDto request) {
@@ -158,8 +163,20 @@ public class ArticleService {
                     });
             barcodes.add(new ArticleBarcode(code));
         }
-        return article.withData(data.name().trim(), blankToNull(data.brand()), blankToNull(data.packageSize()),
+        String packageSize = blankToNull(data.packageSize());
+        return article.withData(data.name().trim(), blankToNull(data.brand()), packageSize, content(data, packageSize),
                 blankToNull(data.imageUrl()), categoryId, data.minStock(), barcodes);
+    }
+
+    /** Explicit content (amount and unit together) or the one read from the package size text. */
+    private static @Nullable PackageContent content(ArticleDataDto data, @Nullable String packageSize) {
+        if ((data.contentAmount() == null) != (data.contentUnit() == null)) {
+            throw new ConflictException("Für den Inhalt Menge und Einheit angeben");
+        }
+        if (data.contentAmount() != null) {
+            return new PackageContent(data.contentAmount().stripTrailingZeros(), data.contentUnit());
+        }
+        return PackageContentParser.parse(packageSize).orElse(null);
     }
 
     private Optional<Article> findActiveByEan(String ean) {
