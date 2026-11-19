@@ -6,7 +6,7 @@ import { ShoppingListPage } from './ShoppingListPage';
 
 const items = [
   { id: 'i1', articleId: 'a1', label: 'Spülmittel', brand: 'Pril', quantity: 2, automatic: true, done: false },
-  { id: 'i2', label: 'Brot', quantity: 1, automatic: false, done: true },
+  { id: 'i2', label: 'Brot', quantity: 1, automatic: false, done: true, note: 'für Toast (2 Pers.)' },
 ];
 
 describe('ShoppingListPage', () => {
@@ -18,6 +18,7 @@ describe('ShoppingListPage', () => {
 
     expect(await screen.findByText('Spülmittel')).toBeInTheDocument();
     expect(screen.getByText('auto')).toBeInTheDocument();
+    expect(screen.getByText('· für Toast (2 Pers.)')).toBeInTheDocument();
     expect(screen.getByText('Brot')).toHaveClass('has-text-grey');
 
     fireEvent.change(screen.getByLabelText('Menge'), { target: { value: '3' } });

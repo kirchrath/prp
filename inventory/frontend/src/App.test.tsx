@@ -24,7 +24,8 @@ describe('App', () => {
     expect(burger).not.toHaveClass('is-active');
 
     for (const [link, heading] of [['Bestand', 'Bestand'], ['Artikel', 'Artikel'], ['Einkaufsliste', 'Einkaufsliste'],
-      ['Historie', 'Historie'], ['Lagerorte', 'Lagerorte'], ['Kategorien', 'Kategorien'], ['Scanner', 'Scanner']]) {
+      ['Historie', 'Historie'], ['Lagerorte', 'Lagerorte'], ['Artikelkategorien', 'Artikelkategorien'],
+      ['Rezeptkategorien', 'Rezeptkategorien'], ['Kochen', 'Was kann ich kochen?'], ['Rezepte', 'Rezepte'], ['Scanner', 'Scanner']]) {
       await userEvent.click(screen.getByRole('link', { name: link }));
       expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument();
     }

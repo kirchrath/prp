@@ -38,6 +38,14 @@ export interface ProductLookupDto {
     /**
      * 
      */
+    contentAmount?: number;
+    /**
+     * 
+     */
+    contentUnit?: ProductLookupDtoContentUnitEnum;
+    /**
+     * 
+     */
     imageUrl?: string;
     /**
      * 
@@ -49,6 +57,15 @@ export interface ProductLookupDto {
     existingArticleId?: string;
 }
 
+/**
+* @export
+* @enum {string}
+*/
+export enum ProductLookupDtoContentUnitEnum {
+    Gram = 'GRAM',
+    Milliliter = 'MILLILITER',
+    Piece = 'PIECE'
+}
 /**
 * @export
 * @enum {string}
@@ -84,6 +101,8 @@ export function ProductLookupDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'name': json['name'] == null ? undefined : json['name'],
         'brand': json['brand'] == null ? undefined : json['brand'],
         'packageSize': json['packageSize'] == null ? undefined : json['packageSize'],
+        'contentAmount': json['contentAmount'] == null ? undefined : json['contentAmount'],
+        'contentUnit': json['contentUnit'] == null ? undefined : json['contentUnit'],
         'imageUrl': json['imageUrl'] == null ? undefined : json['imageUrl'],
         'source': json['source'] == null ? undefined : json['source'],
         'existingArticleId': json['existingArticleId'] == null ? undefined : json['existingArticleId'],
@@ -105,6 +124,8 @@ export function ProductLookupDtoToJSONTyped(value?: ProductLookupDto | null, ign
         'name': value['name'],
         'brand': value['brand'],
         'packageSize': value['packageSize'],
+        'contentAmount': value['contentAmount'],
+        'contentUnit': value['contentUnit'],
         'imageUrl': value['imageUrl'],
         'source': value['source'],
         'existingArticleId': value['existingArticleId'],

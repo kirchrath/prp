@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useApi } from '../api/ApiContext';
-import { ArticleListDtoStatusEnum, type ArticleDto, type ArticleListDto, type CategoryListDto } from '../api/catalog';
+import {
+  ArticleDataDtoContentUnitEnum,
+  ArticleListDtoStatusEnum,
+  type ArticleDto,
+  type ArticleListDto,
+  type CategoryListDto,
+} from '../api/catalog';
 import { ArticleImage } from '../components/ArticleImage';
 import { Field } from '../components/Field';
 import { Modal } from '../components/Modal';
@@ -27,6 +33,8 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
   const [brand, setBrand] = useState(data?.brand ?? '');
   const [packageSize, setPackageSize] = useState(data?.packageSize ?? '');
   const [imageUrl, setImageUrl] = useState(data?.imageUrl ?? '');
+  const [contentAmount, setContentAmount] = useState(data?.contentAmount === undefined ? '' : String(data.contentAmount));
+  const [contentUnit, setContentUnit] = useState<string>(data?.contentUnit ?? '');
   const [categoryId, setCategoryId] = useState(data?.categoryId ?? '');
   const [minStock, setMinStock] = useState(data?.minStock ?? 0);
   const [eans, setEans] = useState<string[]>(data?.eans ?? []);
@@ -57,6 +65,10 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
       setBrand(result.brand ?? brand);
       setPackageSize(result.packageSize ?? packageSize);
       setImageUrl(result.imageUrl ?? imageUrl);
+      if (result.contentAmount !== undefined) {
+        setContentAmount(String(result.contentAmount));
+        setContentUnit(result.contentUnit!);
+      }
       notify('success', 'Produktdaten übernommen');
     } catch (e) {
       await fail(e);
@@ -74,6 +86,9 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
       name,
       brand: brand || undefined,
       packageSize: packageSize || undefined,
+      // without an explicit content the service reads it from the package size text
+      contentAmount: contentAmount && contentUnit ? Number(contentAmount) : undefined,
+      contentUnit: contentAmount && contentUnit ? (contentUnit as ArticleDataDtoContentUnitEnum) : undefined,
       imageUrl: imageUrl || undefined,
       categoryId: categoryId || undefined,
       minStock,
@@ -180,6 +195,25 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
           </Field>
         </div>
       </div>
+
+      <Field label="Inhalt einer Packung" help="Für Rezepte; leer lassen = aus der Packungsgröße lesen (z. B. „500 g“)">
+        <div className="field has-addons">
+          <div className="control is-expanded">
+            <input className="input" type="number" min={0} step="any" aria-label="Inhaltsmenge" value={contentAmount}
+              onChange={(e) => setContentAmount(e.target.value)} />
+          </div>
+          <div className="control">
+            <div className="select">
+              <select aria-label="Inhaltseinheit" value={contentUnit} onChange={(e) => setContentUnit(e.target.value)}>
+                <option value="">–</option>
+                <option value={ArticleDataDtoContentUnitEnum.Gram}>g</option>
+                <option value={ArticleDataDtoContentUnitEnum.Milliliter}>ml</option>
+                <option value={ArticleDataDtoContentUnitEnum.Piece}>Stück</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </Field>
 
       <Field label="Bild-URL">
         <input className="input" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />

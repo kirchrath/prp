@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useRef, type ReactNode } from 'reac
 import { useAuth } from 'react-oidc-context';
 import * as catalog from './catalog';
 import * as device from './device';
+import * as recipe from './recipe';
 import * as shopping from './shopping';
 import * as stock from './stock';
 
@@ -15,6 +16,10 @@ export interface Api {
   movements: stock.MovementsApi;
   shopping: shopping.ShoppingItemsApi;
   scanners: device.ScannersApi;
+  recipes: recipe.RecipesApi;
+  recipeCategories: recipe.RecipeCategoriesApi;
+  recipeImports: recipe.RecipeImportsApi;
+  cooking: recipe.CookingApi;
 }
 
 export const ApiContext = createContext<Api | null>(null);
@@ -23,6 +28,7 @@ export function createApi(token: () => string | undefined): Api {
   const params = { basePath: '', accessToken: async () => token() ?? '' };
   const catalogConfig = new catalog.Configuration(params);
   const stockConfig = new stock.Configuration(params);
+  const recipeConfig = new recipe.Configuration(params);
   return {
     articles: new catalog.ArticlesApi(catalogConfig),
     categories: new catalog.CategoriesApi(catalogConfig),
@@ -32,6 +38,10 @@ export function createApi(token: () => string | undefined): Api {
     movements: new stock.MovementsApi(stockConfig),
     shopping: new shopping.ShoppingItemsApi(new shopping.Configuration(params)),
     scanners: new device.ScannersApi(new device.Configuration(params)),
+    recipes: new recipe.RecipesApi(recipeConfig),
+    recipeCategories: new recipe.RecipeCategoriesApi(recipeConfig),
+    recipeImports: new recipe.RecipeImportsApi(recipeConfig),
+    cooking: new recipe.CookingApi(recipeConfig),
   };
 }
 

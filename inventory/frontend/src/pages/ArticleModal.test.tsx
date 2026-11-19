@@ -20,7 +20,7 @@ describe('ArticleModal', () => {
   it('creates an article with product data from the lookup', async () => {
     const api = fakeApi();
     api.articles.lookupProduct
-      .mockResolvedValueOnce({ found: true, name: 'Nudeln', brand: 'Barilla', packageSize: '500 g', imageUrl: 'img' })
+      .mockResolvedValueOnce({ found: true, name: 'Nudeln', brand: 'Barilla', packageSize: '500 g', contentAmount: 500, contentUnit: 'GRAM', imageUrl: 'img' })
       .mockResolvedValueOnce({ found: true })
       .mockResolvedValueOnce({ found: false, existingArticleId: 'other' })
       .mockRejectedValueOnce(apiError(500));
@@ -48,7 +48,7 @@ describe('ArticleModal', () => {
     fireEvent.change(screen.getByLabelText('Mindestbestand'), { target: { value: '2' } });
     await userEvent.click(screen.getByText('Speichern'));
     expect(api.articles.createArticle).toHaveBeenCalledWith({
-      articleSaveDto: { data: { name: 'Nudeln', brand: 'Barilla', packageSize: '500 g', imageUrl: 'img', categoryId: 'c1', minStock: 2, eans: ['4001'] } },
+      articleSaveDto: { data: { name: 'Nudeln', brand: 'Barilla', packageSize: '500 g', contentAmount: 500, contentUnit: 'GRAM', imageUrl: 'img', categoryId: 'c1', minStock: 2, eans: ['4001'] } },
     });
     expect(onSaved).toHaveBeenCalled();
   });
@@ -57,7 +57,11 @@ describe('ArticleModal', () => {
     const api = fakeApi();
     api.articles.lookupProduct.mockResolvedValue({ found: false, existingArticleId: 'a1' });
     api.articles.updateArticle.mockRejectedValueOnce(apiError(409, 'EAN vergeben'));
-    open(api, { id: 'a1', article: { audit: audit(2), data: { name: 'Salz', minStock: 1, eans: ['1', '2'], status: 'ACTIVE' } } });
+    open(api, { id: 'a1', article: { audit: audit(2), data: { name: 'Salz', minStock: 1, eans: ['1', '2'], status: 'ACTIVE', contentAmount: 500, contentUnit: 'GRAM' } } });
+    expect(screen.getByLabelText('Inhaltsmenge')).toHaveValue(500);
+    await userEvent.clear(screen.getByLabelText('Inhaltsmenge'));
+    await userEvent.type(screen.getByLabelText('Inhaltsmenge'), '1');
+    await userEvent.selectOptions(screen.getByLabelText('Inhaltseinheit'), 'PIECE');
     expect(screen.getByText('Artikel bearbeiten')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('EAN 1 nachschlagen'));
     expect(await screen.findByText('Keine Produktdaten gefunden.')).toBeInTheDocument();
@@ -70,7 +74,7 @@ describe('ArticleModal', () => {
     expect(await screen.findByText('EAN vergeben')).toBeInTheDocument();
     expect(api.articles.updateArticle).toHaveBeenCalledWith({
       id: 'a1',
-      articleSaveDto: { audit: audit(2), data: { name: 'Salz', brand: 'Bad Reichenhaller', packageSize: '1 kg', imageUrl: 'img', categoryId: undefined, minStock: 1, eans: ['2'] } },
+      articleSaveDto: { audit: audit(2), data: { name: 'Salz', brand: 'Bad Reichenhaller', packageSize: '1 kg', contentAmount: 1, contentUnit: 'PIECE', imageUrl: 'img', categoryId: undefined, minStock: 1, eans: ['2'] } },
     });
   });
 

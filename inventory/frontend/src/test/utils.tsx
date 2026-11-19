@@ -29,6 +29,15 @@ export function fakeApi(): FakeApi {
       deleteShoppingItem: ok(), deleteDoneShoppingItems: ok(),
     },
     scanners: { listScanners: ok([]), getScanner: ok(), updateScanner: ok(), deleteScanner: ok() },
+    recipes: {
+      listRecipes: ok([]), listRecipeTags: ok([]), getRecipe: ok(), createRecipe: ok(), updateRecipe: ok(), deleteRecipe: ok(),
+    },
+    recipeCategories: {
+      listRecipeCategories: ok([]), getRecipeCategory: ok(), createRecipeCategory: ok(), updateRecipeCategory: ok(),
+      deleteRecipeCategory: ok(),
+    },
+    recipeImports: { importRecipeFromUrl: ok(), importRecipeFromText: ok() },
+    cooking: { listSuggestions: ok([]), createShoppingRequest: ok(), getShoppingRequest: ok() },
   } as unknown as FakeApi;
 }
 

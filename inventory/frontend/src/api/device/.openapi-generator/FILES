@@ -1,12 +1,5 @@
-.openapi-generator-ignore
 apis/ScannersApi.ts
 apis/index.ts
-docs/AuditDto.md
-docs/ScannerDataDto.md
-docs/ScannerDto.md
-docs/ScannerListDto.md
-docs/ScannerSaveDto.md
-docs/ScannersApi.md
 index.ts
 models/AuditDto.ts
 models/ScannerDataDto.ts

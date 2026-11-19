@@ -7,7 +7,9 @@ import { StockPage } from './pages/StockPage';
 import { ArticlesPage } from './pages/ArticlesPage';
 import { ShoppingListPage } from './pages/ShoppingListPage';
 import { LocationsPage } from './pages/LocationsPage';
-import { CategoriesPage } from './pages/CategoriesPage';
+import { articleCategories, CategoriesPage, recipeCategories } from './pages/CategoriesPage';
+import { CookPage } from './pages/CookPage';
+import { RecipesPage } from './pages/RecipesPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ScannersPage } from './pages/ScannersPage';
 import { Loading } from './components/Status';
@@ -20,13 +22,16 @@ const NAV = [
   { to: '/bestand', label: 'Bestand' },
   { to: '/artikel', label: 'Artikel' },
   { to: '/scannen', label: 'Scannen' },
+  { to: '/kochen', label: 'Kochen' },
+  { to: '/rezepte', label: 'Rezepte' },
   { to: '/einkaufsliste', label: 'Einkaufsliste' },
   { to: '/historie', label: 'Historie' },
 ];
 
 const SETTINGS = [
   { to: '/lagerorte', label: 'Lagerorte' },
-  { to: '/kategorien', label: 'Kategorien' },
+  { to: '/kategorien', label: 'Artikelkategorien' },
+  { to: '/rezeptkategorien', label: 'Rezeptkategorien' },
   { to: '/scanner', label: 'Scanner' },
 ];
 
@@ -95,7 +100,10 @@ export function App() {
             <Route path="/einkaufsliste" element={<ShoppingListPage />} />
             <Route path="/historie" element={<HistoryPage />} />
             <Route path="/lagerorte" element={<LocationsPage />} />
-            <Route path="/kategorien" element={<CategoriesPage />} />
+            <Route path="/kategorien" element={<CategoriesPage title="Artikelkategorien" store={articleCategories} />} />
+            <Route path="/rezeptkategorien" element={<CategoriesPage title="Rezeptkategorien" store={recipeCategories} />} />
+            <Route path="/kochen" element={<CookPage />} />
+            <Route path="/rezepte" element={<RecipesPage />} />
             <Route path="/scanner" element={<ScannersPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

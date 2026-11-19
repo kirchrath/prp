@@ -34,6 +34,14 @@ export interface ArticleDataDto {
     /**
      * 
      */
+    contentAmount?: number;
+    /**
+     * 
+     */
+    contentUnit?: ArticleDataDtoContentUnitEnum;
+    /**
+     * 
+     */
     imageUrl?: string;
     /**
      * 
@@ -61,6 +69,15 @@ export interface ArticleDataDto {
     mergedInto?: string;
 }
 
+/**
+* @export
+* @enum {string}
+*/
+export enum ArticleDataDtoContentUnitEnum {
+    Gram = 'GRAM',
+    Milliliter = 'MILLILITER',
+    Piece = 'PIECE'
+}
 /**
 * @export
 * @enum {string}
@@ -105,6 +122,8 @@ export function ArticleDataDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'name': json['name'],
         'brand': json['brand'] == null ? undefined : json['brand'],
         'packageSize': json['packageSize'] == null ? undefined : json['packageSize'],
+        'contentAmount': json['contentAmount'] == null ? undefined : json['contentAmount'],
+        'contentUnit': json['contentUnit'] == null ? undefined : json['contentUnit'],
         'imageUrl': json['imageUrl'] == null ? undefined : json['imageUrl'],
         'categoryId': json['categoryId'] == null ? undefined : json['categoryId'],
         'minStock': json['minStock'],
@@ -129,6 +148,8 @@ export function ArticleDataDtoToJSONTyped(value?: ArticleDataDto | null, ignoreD
         'name': value['name'],
         'brand': value['brand'],
         'packageSize': value['packageSize'],
+        'contentAmount': value['contentAmount'],
+        'contentUnit': value['contentUnit'],
         'imageUrl': value['imageUrl'],
         'categoryId': value['categoryId'],
         'minStock': value['minStock'],

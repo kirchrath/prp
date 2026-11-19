@@ -1,14 +1,52 @@
 import { useState } from 'react';
-import { useApi } from '../api/ApiContext';
-import type { CategoryListDto } from '../api/catalog';
+import { useApi, type Api } from '../api/ApiContext';
 import { useNotify } from '../components/Notifications';
 import { Empty, ErrorBox, Loading } from '../components/Status';
 import { useAsync } from '../hooks/useAsync';
 
-export function CategoriesPage() {
+interface Category {
+  id: string;
+  name: string;
+}
+
+/** Access to the categories of one service. */
+export interface CategoryStore {
+  list(): Promise<Category[]>;
+  version(id: string): Promise<{ audit: { version: number } }>;
+  create(name: string): Promise<unknown>;
+  rename(id: string, name: string): Promise<unknown>;
+  remove(id: string, version: number): Promise<unknown>;
+}
+
+/** Categories of articles (catalog service). */
+export const articleCategories = (api: Api): CategoryStore => ({
+  list: () => api.categories.listCategories(),
+  version: (id) => api.categories.getCategory({ id }),
+  create: (name) => api.categories.createCategory({ categorySaveDto: { data: { name } } }),
+  rename: async (id, name) => {
+    const { audit } = await api.categories.getCategory({ id });
+    return api.categories.updateCategory({ id, categorySaveDto: { audit, data: { name } } });
+  },
+  remove: (id, version) => api.categories.deleteCategory({ id, version }),
+});
+
+/** Categories of recipes (recipe service). */
+export const recipeCategories = (api: Api): CategoryStore => ({
+  list: () => api.recipeCategories.listRecipeCategories(),
+  version: (id) => api.recipeCategories.getRecipeCategory({ id }),
+  create: (name) => api.recipeCategories.createRecipeCategory({ categorySaveDto: { data: { name } } }),
+  rename: async (id, name) => {
+    const { audit } = await api.recipeCategories.getRecipeCategory({ id });
+    return api.recipeCategories.updateRecipeCategory({ id, categorySaveDto: { audit, data: { name } } });
+  },
+  remove: (id, version) => api.recipeCategories.deleteRecipeCategory({ id, version }),
+});
+
+export function CategoriesPage({ title, store: makeStore }: { title: string; store: (api: Api) => CategoryStore }) {
   const api = useApi();
+  const store = makeStore(api);
   const { fail } = useNotify();
-  const categories = useAsync(() => api.categories.listCategories(), [api]);
+  const categories = useAsync(() => store.list(), [api]);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState<{ id: string; name: string }>();
 
@@ -22,17 +60,13 @@ export function CategoriesPage() {
     }
   };
 
-  const rename = (id: string, newName: string) =>
-    run(async () => {
-      const { audit } = await api.categories.getCategory({ id });
-      await api.categories.updateCategory({ id, categorySaveDto: { audit, data: { name: newName } } });
-    }, () => setEditing(undefined));
+  const rename = (id: string, newName: string) => run(() => store.rename(id, newName), () => setEditing(undefined));
 
-  const remove = (c: CategoryListDto) => {
-    if (!window.confirm(`Kategorie "${c.name}" löschen? Artikel bleiben erhalten.`)) return;
+  const remove = (c: Category) => {
+    if (!window.confirm(`Kategorie "${c.name}" löschen? Zugeordnete Einträge bleiben erhalten.`)) return;
     void run(async () => {
-      const { audit } = await api.categories.getCategory({ id: c.id });
-      await api.categories.deleteCategory({ id: c.id, version: audit.version });
+      const { audit } = await store.version(c.id);
+      await store.remove(c.id, audit.version);
     }, () => undefined);
   };
 
@@ -93,12 +127,12 @@ export function CategoriesPage() {
 
   return (
     <>
-      <h1 className="title">Kategorien</h1>
+      <h1 className="title">{title}</h1>
       <form
         className="field has-addons"
         onSubmit={(e) => {
           e.preventDefault();
-          void run(() => api.categories.createCategory({ categorySaveDto: { data: { name } } }), () => setName(''));
+          void run(() => store.create(name), () => setName(''));
         }}
       >
         <div className="control is-expanded">

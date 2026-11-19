@@ -50,6 +50,7 @@ export function ShoppingListPage() {
               <span className={item.done ? 'has-text-grey' : ''} style={{ textDecoration: item.done ? 'line-through' : undefined }}>
                 <strong>{item.quantity}×</strong> {item.label}
                 {item.brand && <small className="has-text-grey"> · {item.brand}</small>}
+                {item.note && <small className="has-text-grey"> · {item.note}</small>}
               </span>
             </label>
             {item.automatic && <span className="tag is-info is-light mr-2" title="Automatisch wegen Mindestbestand">auto</span>}

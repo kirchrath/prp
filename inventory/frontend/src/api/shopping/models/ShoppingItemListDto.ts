@@ -47,6 +47,10 @@ export interface ShoppingItemListDto {
      * 
      */
     done: boolean;
+    /**
+     * 
+     */
+    note?: string;
 }
 
 /**
@@ -78,6 +82,7 @@ export function ShoppingItemListDtoFromJSONTyped(json: any, ignoreDiscriminator:
         'quantity': json['quantity'],
         'automatic': json['automatic'],
         'done': json['done'],
+        'note': json['note'] == null ? undefined : json['note'],
     };
 }
 
@@ -99,6 +104,7 @@ export function ShoppingItemListDtoToJSONTyped(value?: ShoppingItemListDto | nul
         'quantity': value['quantity'],
         'automatic': value['automatic'],
         'done': value['done'],
+        'note': value['note'],
     };
 }
 

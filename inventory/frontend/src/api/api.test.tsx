@@ -28,7 +28,7 @@ describe('dates', () => {
 
   it('counts days', () => {
     expect(daysUntil(new Date(2027, 0, 3), new Date(2027, 0, 1, 15))).toBe(2);
-    expect(daysUntil(new Date())).toBe(0);
+    expect(daysUntil(new Date(new Date().setHours(0, 0, 0, 0)))).toBe(0);
   });
 });
 
@@ -110,7 +110,7 @@ describe('ApiContext', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<AuthenticatedApiProvider><ShowApi /></AuthenticatedApiProvider>);
     render(<AnonymousApiProvider><ShowApi /></AnonymousApiProvider>);
-    expect(screen.getAllByText('8')).toHaveLength(2);
+    expect(screen.getAllByText('12')).toHaveLength(2);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls.map((c) => c[1].headers.Authorization)).toEqual(['Bearer token-1', undefined]);
     vi.unstubAllGlobals();

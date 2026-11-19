@@ -12,6 +12,7 @@ export default defineConfig({
       '/api/stock': 'http://localhost:8082',
       '/api/shopping': 'http://localhost:8083',
       '/api/device': 'http://localhost:8084',
+      '/api/recipe': 'http://localhost:8085',
     },
   },
   test: {
@@ -21,7 +22,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/api/catalog/**', 'src/api/stock/**', 'src/api/shopping/**', 'src/api/device/**', 'src/test/**',
+      exclude: ['src/api/catalog/**', 'src/api/stock/**', 'src/api/shopping/**', 'src/api/device/**', 'src/api/recipe/**', 'src/test/**',
         'src/**/*.test.{ts,tsx}', 'src/vite-env.d.ts'],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
