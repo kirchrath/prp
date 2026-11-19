@@ -1,0 +1,37 @@
+{
+  "realm": "home",
+  "displayName": "Zuhause",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["de", "en"],
+  "defaultLocale": "de",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 2592000,
+  "ssoSessionMaxLifespan": 7776000,
+  "clients": [
+    {
+      "clientId": "inventory-frontend",
+      "name": "Vorrat",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "https://${INVENTORY_HOST}",
+      "baseUrl": "/",
+      "redirectUris": ["https://${INVENTORY_HOST}/*", "http://localhost:5173/*"],
+      "webOrigins": ["https://${INVENTORY_HOST}", "http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://${INVENTORY_HOST}/*##http://localhost:5173/*"
+      }
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+name: inventory
+
+services:
+  db:
+    image: postgres:18.7-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventory"]
+      interval: 10s
+      retries: 10
+    networks:
+      - internal
+
+  backend:
+    build: ./backend
+    image: home/inventory-backend:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/inventory
+      DB_USER: inventory
+      DB_PASSWORD: ${DB_PASSWORD}
+      # issuer as the browser sees it; keys are fetched container-internally
+      OIDC_ISSUER_URI: https://${AUTH_HOST}/realms/home
+      OIDC_JWK_SET_URI: http://keycloak:8080/realms/home/protocol/openid-connect/certs
+      MQTT_ENABLED: "true"
+      MQTT_URL: tcp://mosquitto:1883
+      MQTT_USERNAME: inventory-backend
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      LOOKUP_ENABLED: ${LOOKUP_ENABLED:-true}
+      TZ: ${TZ}
+    networks:
+      - internal
+      - proxy   # reach Keycloak (not exposed via Traefik)
+      - mqtt
+
+  frontend:
+    build: ./frontend
+    image: home/inventory-frontend:local
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      BACKEND_URL: http://backend:8080
+      OIDC_AUTHORITY: https://${AUTH_HOST}/realms/home
+      OIDC_CLIENT_ID: inventory-frontend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory.rule=Host(`${INVENTORY_HOST}`)
+      - traefik.http.routers.inventory.entrypoints=websecure
+      - traefik.http.services.inventory.loadbalancer.server.port=80
+    networks:
+      - internal
+      - proxy
+
+networks:
+  internal:
+  proxy:
+    external: true
+  mqtt:
+    external: true
+
+volumes:
+  db:
