@@ -1,6 +1,8 @@
 #include "feedback.h"
 #include "pins.h"
 
+using logic::Signal;
+
 static Signal current = Signal::Idle;
 static uint32_t shownAt = 0;
 static const uint32_t SHOW_MS = 1500;
