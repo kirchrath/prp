@@ -1,0 +1,164 @@
+name: inventory
+
+# Requires the infra stack (networks proxy, kafka, mqtt).
+# Traefik routes by path: /api/<service>/** to the service, everything else to the frontend.
+
+x-service: &service
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+  networks:
+    - internal
+    - proxy   # Traefik + Keycloak (JWKS)
+    - kafka
+
+x-service-env: &service-env
+  DB_URL: jdbc:postgresql://db:5432/inventory
+  DB_USER: inventory
+  DB_PASSWORD: ${DB_PASSWORD}
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  OIDC_ISSUER_URI: https://${AUTH_HOST}/realms/home
+  OIDC_JWK_SET_URI: http://keycloak:8080/realms/home/protocol/openid-connect/certs
+  TZ: ${TZ}
+
+services:
+  db:
+    image: postgres:18.7-alpine
+    restart: unless-stopped
+    environment:
+      # one database, every service owns its own schema (created by Flyway)
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventory"]
+      interval: 10s
+      retries: 10
+    networks:
+      - internal
+
+  catalog-service:
+    <<: *service
+    build: ./services/catalog-service
+    image: home/catalog-service:local
+    environment:
+      <<: *service-env
+      LOOKUP_ENABLED: ${LOOKUP_ENABLED:-true}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-catalog.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/catalog`)
+      - traefik.http.routers.inventory-catalog.entrypoints=websecure
+      - traefik.http.services.inventory-catalog.loadbalancer.server.port=8080
+
+  stock-service:
+    <<: *service
+    build: ./services/stock-service
+    image: home/stock-service:local
+    environment:
+      <<: *service-env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-stock.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/stock`)
+      - traefik.http.routers.inventory-stock.entrypoints=websecure
+      - traefik.http.services.inventory-stock.loadbalancer.server.port=8080
+
+  shopping-service:
+    <<: *service
+    build: ./services/shopping-service
+    image: home/shopping-service:local
+    environment:
+      <<: *service-env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-shopping.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/shopping`)
+      - traefik.http.routers.inventory-shopping.entrypoints=websecure
+      - traefik.http.services.inventory-shopping.loadbalancer.server.port=8080
+
+  device-service:
+    <<: *service
+    build: ./services/device-service
+    image: home/device-service:local
+    environment:
+      <<: *service-env
+      MQTT_URL: tcp://mosquitto:1883
+      MQTT_USERNAME: device-service
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+    networks:
+      - internal
+      - proxy
+      - kafka
+      - mqtt
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-device.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/device`)
+      - traefik.http.routers.inventory-device.entrypoints=websecure
+      - traefik.http.services.inventory-device.loadbalancer.server.port=8080
+
+  recipe-service:
+    <<: *service
+    build: ./services/recipe-service
+    image: home/recipe-service:local
+    environment:
+      <<: *service-env
+      # AI for recipe imports: ollama (local, infra profile "ollama") | anthropic | openai
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      OLLAMA_THINK: ${OLLAMA_THINK:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-unset}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-5-5}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-unset}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-recipe.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/recipe`)
+      - traefik.http.routers.inventory-recipe.entrypoints=websecure
+      - traefik.http.services.inventory-recipe.loadbalancer.server.port=8080
+
+  notification-service:
+    <<: *service
+    build: ./services/notification-service
+    image: home/notification-service:local
+    environment:
+      <<: *service-env
+      # ntfy of the infra stack (network proxy); token from infra/scripts/ntfy-user.sh service
+      NTFY_URL: http://ntfy
+      NTFY_TOPIC: ${NTFY_TOPIC:-vorrat}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      INVENTORY_URL: https://${INVENTORY_HOST}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-notification.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/notification`)
+      - traefik.http.routers.inventory-notification.entrypoints=websecure
+      - traefik.http.services.inventory-notification.loadbalancer.server.port=8080
+
+  frontend:
+    build: ./frontend
+    image: home/inventory-frontend:local
+    restart: unless-stopped
+    environment:
+      OIDC_AUTHORITY: https://${AUTH_HOST}/realms/home
+      OIDC_CLIENT_ID: inventory-frontend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory.rule=Host(`${INVENTORY_HOST}`)
+      - traefik.http.routers.inventory.entrypoints=websecure
+      - traefik.http.services.inventory.loadbalancer.server.port=80
+    networks:
+      - proxy
+
+networks:
+  internal:
+  proxy:
+    external: true
+  kafka:
+    external: true
+  mqtt:
+    external: true
+
+volumes:
+  db:

@@ -1,0 +1,39 @@
+{
+  "name": "inventory-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "generate-api": "openapi-generator-cli generate -i ../openapi/catalog.json -g typescript-fetch -o src/api/catalog -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/stock.json -g typescript-fetch -o src/api/stock -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/shopping.json -g typescript-fetch -o src/api/shopping -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/device.json -g typescript-fetch -o src/api/device -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/recipe.json -g typescript-fetch -o src/api/recipe -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/notification.json -g typescript-fetch -o src/api/notification -c openapi-generator.json",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
+    "bulma": "^1.0.4",
+    "oidc-client-ts": "^3.5.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-oidc-context": "^3.3.1",
+    "react-router": "^8.5.2"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.42.2",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^8.0.0",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.13",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "@vitest/coverage-v8": "^5.1.1",
+    "jsdom": "^31.0.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}

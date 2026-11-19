@@ -1,0 +1,12 @@
+package home.inventory.stock.movement.dto;
+
+import home.inventory.stock.movement.MovementSource;
+import home.inventory.stock.movement.MovementType;
+import java.time.LocalDate;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
+
+public record MovementDataDto(UUID articleId, UUID locationId, @Nullable LocalDate bestBefore, int delta,
+                              MovementType type, MovementSource source, @Nullable UUID scannerId,
+                              @Nullable String username, @Nullable UUID bookingId) {
+}

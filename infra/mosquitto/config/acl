@@ -1,0 +1,9 @@
+# device-service: reads all scanner topics and answers on .../feedback
+user device-service
+topic readwrite inventory/scanner/#
+
+# Every scanner logs in with its device id as user name (e.g. "scanner-kueche")
+# and may only use its own topics.
+pattern write inventory/scanner/%u/scan
+pattern readwrite inventory/scanner/%u/status
+pattern read inventory/scanner/%u/feedback

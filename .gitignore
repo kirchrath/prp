@@ -1,0 +1,20 @@
+# Java / Maven
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+# Env / secrets
+.env
+infra/mosquitto/config/passwd
+infra/traefik/certs/*
+!infra/traefik/certs/.gitkeep
+infra/traefik/acme/
+# PlatformIO
+.pio/
+scanner/firmware/include/secrets.h

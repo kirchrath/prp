@@ -1,0 +1,10 @@
+apis/ScannersApi.ts
+apis/index.ts
+index.ts
+models/AuditDto.ts
+models/ScannerDataDto.ts
+models/ScannerDto.ts
+models/ScannerListDto.ts
+models/ScannerSaveDto.ts
+models/index.ts
+runtime.ts

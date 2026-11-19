@@ -1,0 +1,10 @@
+apis/ShoppingItemsApi.ts
+apis/index.ts
+index.ts
+models/AuditDto.ts
+models/ShoppingItemDataDto.ts
+models/ShoppingItemDto.ts
+models/ShoppingItemListDto.ts
+models/ShoppingItemSaveDto.ts
+models/index.ts
+runtime.ts

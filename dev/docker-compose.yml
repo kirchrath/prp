@@ -1,0 +1,113 @@
+# Local development: infrastructure on localhost, services and frontend run from the IDE / Maven / Vite.
+#   docker compose -f dev/docker-compose.yml up -d
+# PostgreSQL :5432 · Kafka :9092 · Keycloak :8180 (user dev / dev) · Mosquitto :1883 (anonymous) · ntfy :8090
+# optional profile "ollama": Ollama :11434, pulls the model qwen3:8b
+name: inventory-dev
+
+services:
+  postgres:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+
+  kafka:
+    image: apache/kafka:4.2.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8
+    command: start-dev --import-realm --http-port 8180
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8180
+      INVENTORY_HOST: localhost
+    ports:
+      - "8180:8180"
+    volumes:
+      - ../infra/keycloak/realm-home.json:/opt/keycloak/data/import/realm-home.json:ro
+
+  # creates the login user "dev" (password "dev") once Keycloak is up
+  keycloak-init:
+    image: quay.io/keycloak/keycloak:26.8
+    depends_on:
+      - keycloak
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        kc=/opt/keycloak/bin/kcadm.sh
+        until $$kc config credentials --server http://keycloak:8180 --realm master --user admin --password admin >/dev/null 2>&1; do sleep 3; done
+        $$kc get users -r home -q username=dev | grep -q '"username"' && { echo "user dev exists"; exit 0; }
+        $$kc create users -r home -s username=dev -s enabled=true -s firstName=Dev -s lastName=User \
+          -s email=dev@example.invalid -s emailVerified=true
+        $$kc set-password -r home --username dev --new-password dev
+        echo "user dev created"
+
+  mosquitto:
+    image: eclipse-mosquitto:2.1-alpine
+    ports:
+      - "1883:1883"
+    configs:
+      - source: mosquitto
+        target: /mosquitto/config/mosquitto.conf
+
+  # push notifications without login (dev only); web app: http://localhost:8090, topic "vorrat"
+  ntfy:
+    image: binwiederhier/ntfy:v2.20.0
+    command: serve
+    environment:
+      NTFY_BASE_URL: http://localhost:8090
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+    ports:
+      - "8090:80"
+    volumes:
+      - ntfy:/var/lib/ntfy
+
+  # optional local AI: docker compose -f dev/docker-compose.yml --profile ollama up -d
+  ollama:
+    image: ollama/ollama:0.40.16
+    profiles: [ollama]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+  ollama-pull:
+    image: ollama/ollama:0.40.16
+    profiles: [ollama]
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: qwen3:8b
+    entrypoint: ["/bin/sh", "-c", 'until ollama list >/dev/null 2>&1; do sleep 2; done; ollama pull "$$OLLAMA_MODEL"']
+
+configs:
+  mosquitto:
+    content: |
+      listener 1883
+      allow_anonymous true
+
+volumes:
+  postgres:
+  ntfy:
+  ollama:

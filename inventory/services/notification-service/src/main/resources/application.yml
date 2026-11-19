@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: notification-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inventory}
+    username: ${DB_USER:inventory}
+    password: ${DB_PASSWORD:inventory}
+    hikari:
+      # every service owns its own schema
+      schema: notification
+  flyway:
+    schemas: notification
+    default-schema: notification
+  jackson:
+    default-property-inclusion: non_null
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8180/realms/home}
+          jwk-set-uri: ${OIDC_JWK_SET_URI:http://localhost:8180/realms/home/protocol/openid-connect/certs}
+
+server:
+  port: ${SERVER_PORT:8086}
+
+inventory:
+  notification:
+    # ntfy server and the household topic (see docs/notifications.md)
+    ntfy-url: ${NTFY_URL:http://localhost:8090}
+    ntfy-topic: ${NTFY_TOPIC:vorrat}
+    # access token of the ntfy user of this service (write access to the topic); empty = anonymous
+    ntfy-token: ${NTFY_TOKEN:}
+    # opened when the notification is tapped
+    app-url: ${INVENTORY_URL:http://localhost:5173}
+    # a failed daily digest is tried again after this time, at most max-attempts times per day
+    retry-after: 15m
+    max-attempts: 4
+    # check whether the daily digest is due; "-" disables the scheduler
+    cron: "0 * * * * *"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs

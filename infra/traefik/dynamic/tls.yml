@@ -1,0 +1,9 @@
+# Default certificate for all hosts (local CA mode).
+# Create it with scripts/create-local-ca.sh or copy your own cert.pem/key.pem to traefik/certs.
+# If the files are missing, Traefik falls back to its built-in self-signed certificate.
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/cert.pem
+        keyFile: /certs/key.pem

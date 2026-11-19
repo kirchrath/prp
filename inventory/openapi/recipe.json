@@ -1,0 +1,827 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Recipe API",
+    "version" : "v1"
+  },
+  "security" : [ {
+    "bearer" : [ ]
+  } ],
+  "paths" : {
+    "/api/recipe/recipes/{id}" : {
+      "get" : {
+        "tags" : [ "Recipes" ],
+        "operationId" : "getRecipe",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RecipeDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Recipes" ],
+        "operationId" : "updateRecipe",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecipeSaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Recipes" ],
+        "operationId" : "deleteRecipe",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "version",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/recipe/categories/{id}" : {
+      "get" : {
+        "tags" : [ "RecipeCategories" ],
+        "operationId" : "getRecipeCategory",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "RecipeCategories" ],
+        "operationId" : "updateRecipeCategory",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CategorySaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "RecipeCategories" ],
+        "operationId" : "deleteRecipeCategory",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "version",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/recipe/recipes" : {
+      "get" : {
+        "tags" : [ "Recipes" ],
+        "operationId" : "listRecipes",
+        "parameters" : [ {
+          "name" : "search",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ]
+          }
+        }, {
+          "name" : "categoryId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "tag",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RecipeListDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Recipes" ],
+        "operationId" : "createRecipe",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecipeSaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/recipe/recipes/{id}/shopping-requests" : {
+      "post" : {
+        "tags" : [ "Cooking" ],
+        "operationId" : "createShoppingRequest",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "servings",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/recipe/imports/url" : {
+      "post" : {
+        "tags" : [ "RecipeImports" ],
+        "operationId" : "importRecipeFromUrl",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UrlImportDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RecipeDataDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipe/imports/text" : {
+      "post" : {
+        "tags" : [ "RecipeImports" ],
+        "operationId" : "importRecipeFromText",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TextImportDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RecipeDataDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipe/categories" : {
+      "get" : {
+        "tags" : [ "RecipeCategories" ],
+        "operationId" : "listRecipeCategories",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CategoryListDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "RecipeCategories" ],
+        "operationId" : "createRecipeCategory",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CategorySaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/recipe/suggestions" : {
+      "get" : {
+        "tags" : [ "Cooking" ],
+        "operationId" : "listSuggestions",
+        "parameters" : [ {
+          "name" : "servings",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        }, {
+          "name" : "categoryId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "tag",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RecipeSuggestionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipe/shopping-requests/{id}" : {
+      "get" : {
+        "tags" : [ "Cooking" ],
+        "operationId" : "getShoppingRequest",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShoppingRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipe/recipes/tags" : {
+      "get" : {
+        "tags" : [ "Recipes" ],
+        "operationId" : "listRecipeTags",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "AuditDto" : {
+        "type" : "object",
+        "properties" : {
+          "createdDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastModifiedDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "deleted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdDate", "deleted", "lastModifiedDate", "version" ]
+      },
+      "IngredientDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "amount" : {
+            "type" : "number",
+            "exclusiveMinimum" : 0
+          },
+          "unit" : {
+            "type" : "string",
+            "enum" : [ "GRAM", "KILOGRAM", "MILLILITER", "LITER", "PIECE", "PACKAGE", "TABLESPOON", "TEASPOON", "PINCH", "OTHER" ]
+          },
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "basic" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "basic", "name" ]
+      },
+      "RecipeDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "servings" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1
+          },
+          "prepMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 0
+          },
+          "cookMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 0
+          },
+          "imageUrl" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "sourceUrl" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "categoryId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 50,
+              "minLength" : 0
+            }
+          },
+          "steps" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 4000,
+              "minLength" : 0
+            }
+          },
+          "ingredients" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/IngredientDto"
+            }
+          }
+        },
+        "required" : [ "ingredients", "servings", "steps", "tags", "title" ]
+      },
+      "RecipeSaveDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/RecipeDataDto"
+          }
+        },
+        "required" : [ "data" ]
+      },
+      "CategoryDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "name" ]
+      },
+      "CategorySaveDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/CategoryDataDto"
+          }
+        },
+        "required" : [ "data" ]
+      },
+      "UrlImportDto" : {
+        "type" : "object",
+        "properties" : {
+          "url" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0,
+            "pattern" : "https?://\\S+"
+          }
+        },
+        "required" : [ "url" ]
+      },
+      "TextImportDto" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : "string",
+            "maxLength" : 20000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "text" ]
+      },
+      "MissingIngredientDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "unit" : {
+            "type" : "string",
+            "enum" : [ "GRAM", "KILOGRAM", "MILLILITER", "LITER", "PIECE", "PACKAGE", "TABLESPOON", "TEASPOON", "PINCH", "OTHER" ]
+          },
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "articleName" : {
+            "type" : "string"
+          },
+          "packages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "name", "packages" ]
+      },
+      "RecipeSuggestionDto" : {
+        "type" : "object",
+        "properties" : {
+          "recipeId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "imageUrl" : {
+            "type" : "string"
+          },
+          "categoryName" : {
+            "type" : "string"
+          },
+          "totalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cookable" : {
+            "type" : "boolean"
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingIngredientDto"
+            }
+          }
+        },
+        "required" : [ "cookable", "missing", "recipeId", "title" ]
+      },
+      "ShoppingRequestDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "recipeId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "recipeTitle" : {
+            "type" : "string"
+          },
+          "servings" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ShoppingRequestItemDto"
+            }
+          }
+        },
+        "required" : [ "items", "recipeId", "recipeTitle", "servings" ]
+      },
+      "ShoppingRequestDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/ShoppingRequestDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      },
+      "ShoppingRequestItemDto" : {
+        "type" : "object",
+        "properties" : {
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "text" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "quantity", "text" ]
+      },
+      "RecipeListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "imageUrl" : {
+            "type" : "string"
+          },
+          "categoryId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "categoryName" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "servings" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "servings", "tags", "title" ]
+      },
+      "RecipeDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/RecipeDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      },
+      "CategoryListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "CategoryDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/CategoryDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearer" : {
+        "type" : "http",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}

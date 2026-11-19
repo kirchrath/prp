@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: recipe-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inventory}
+    username: ${DB_USER:inventory}
+    password: ${DB_PASSWORD:inventory}
+    hikari:
+      # every service owns its own schema
+      schema: recipe
+  flyway:
+    schemas: recipe
+    default-schema: recipe
+  ai:
+    model:
+      # AI provider for imports: ollama | anthropic | openai
+      chat: ${AI_PROVIDER:ollama}
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        model: ${OLLAMA_MODEL:qwen3:8b}
+        temperature: 0.1
+        # reasoning mode of thinking models (qwen3): false = faster, enough for structuring
+        think: ${OLLAMA_THINK:false}
+      init:
+        # the model is pulled by the infra stack (service ollama-pull), not on startup
+        pull-model-strategy: never
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:unset}
+      chat:
+        model: ${ANTHROPIC_MODEL:claude-haiku-5-5}
+        # no temperature: current Claude models reject non-default sampling values (HTTP 400)
+        # thinking tokens count towards max-tokens
+        max-tokens: 16000
+    openai:
+      api-key: ${OPENAI_API_KEY:unset}
+      chat:
+        model: ${OPENAI_MODEL:gpt-5-mini}
+        # no temperature: GPT-5 models only accept the default value
+  jackson:
+    default-property-inclusion: non_null
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: recipe-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8180/realms/home}
+          jwk-set-uri: ${OIDC_JWK_SET_URI:http://localhost:8180/realms/home/protocol/openid-connect/certs}
+
+server:
+  port: ${SERVER_PORT:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs

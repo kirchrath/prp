@@ -1,0 +1,193 @@
+name: infra
+
+services:
+  traefik:
+    image: traefik:v3.7
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --log.level=INFO
+      - --accesslog=false
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/certs:/certs:ro
+    environment:
+      TZ: ${TZ}
+    networks:
+      - proxy
+
+  keycloak-db:
+    image: postgres:18.7-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - keycloak-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      retries: 10
+    networks:
+      - keycloak
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8
+    restart: unless-stopped
+    command: start --import-realm
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: https://${AUTH_HOST}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # placeholders used in keycloak/realm-home.json
+      INVENTORY_HOST: ${INVENTORY_HOST}
+      TZ: ${TZ}
+    volumes:
+      - ./keycloak/realm-home.json:/opt/keycloak/data/import/realm-home.json:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.keycloak.rule=Host(`${AUTH_HOST}`)
+      - traefik.http.routers.keycloak.entrypoints=websecure
+      - traefik.http.services.keycloak.loadbalancer.server.port=8080
+    networks:
+      - proxy
+      - keycloak
+
+  mosquitto:
+    image: eclipse-mosquitto:2.1-alpine
+    restart: unless-stopped
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+    environment:
+      TZ: ${TZ}
+    networks:
+      - mqtt
+
+  # push notifications (MHD digest); login required, see scripts/ntfy-user.sh
+  ntfy:
+    image: binwiederhier/ntfy:v2.20.0
+    command: serve
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      NTFY_BASE_URL: https://${NTFY_HOST}
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      # nobody may read or write without an account
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_ENABLE_LOGIN: "true"
+      # iOS push only works via the public server (it only receives a poll request, not the content)
+      NTFY_UPSTREAM_BASE_URL: ${NTFY_UPSTREAM_BASE_URL:-https://ntfy.sh}
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ntfy.rule=Host(`${NTFY_HOST}`)
+      - traefik.http.routers.ntfy.entrypoints=websecure
+      - traefik.http.services.ntfy.loadbalancer.server.port=80
+    networks:
+      - proxy   # Traefik and the notification-service (http://ntfy)
+
+  kafka:
+    image: apache/kafka:4.2.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      TZ: ${TZ}
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks:
+      - kafka
+
+  # optional local AI for the recipe service: docker compose --profile ollama up -d
+  ollama:
+    image: ollama/ollama:0.40.16
+    profiles: [ollama]
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      TZ: ${TZ}
+    # with an NVIDIA GPU (nvidia-container-toolkit installed) uncomment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    networks:
+      - proxy   # reachable for the recipe service, not routed by Traefik
+
+  # downloads the model once (several GB) and exits
+  ollama-pull:
+    image: ollama/ollama:0.40.16
+    profiles: [ollama]
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+    entrypoint: ["/bin/sh", "-c", 'until ollama list >/dev/null 2>&1; do sleep 2; done; ollama pull "$$OLLAMA_MODEL"']
+    networks:
+      - proxy
+
+networks:
+  # shared with the service stacks (e.g. inventory)
+  proxy:
+    name: proxy
+  mqtt:
+    name: mqtt
+  kafka:
+    name: kafka
+  keycloak:
+
+volumes:
+  keycloak-db:
+  mosquitto-data:
+  kafka-data:
+  ntfy-data:
+  ollama:

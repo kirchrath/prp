@@ -1,0 +1,16 @@
+apis/ArticlesApi.ts
+apis/CategoriesApi.ts
+apis/index.ts
+index.ts
+models/ArticleDataDto.ts
+models/ArticleDto.ts
+models/ArticleListDto.ts
+models/ArticleSaveDto.ts
+models/AuditDto.ts
+models/CategoryDataDto.ts
+models/CategoryDto.ts
+models/CategoryListDto.ts
+models/CategorySaveDto.ts
+models/ProductLookupDto.ts
+models/index.ts
+runtime.ts
