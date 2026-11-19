@@ -1,5 +1,5 @@
-# Backend: reads all scanner topics and answers on .../feedback
-user inventory-backend
+# device-service: reads all scanner topics and answers on .../feedback
+user device-service
 topic readwrite inventory/scanner/#
 
 # Every scanner logs in with its device id as user name (e.g. "scanner-kueche")
