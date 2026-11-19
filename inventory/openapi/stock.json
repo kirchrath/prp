@@ -1,0 +1,898 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Stock API",
+    "version" : "v1"
+  },
+  "security" : [ {
+    "bearer" : [ ]
+  } ],
+  "paths" : {
+    "/api/stock/locations/{id}" : {
+      "get" : {
+        "tags" : [ "Locations" ],
+        "operationId" : "getLocation",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Locations" ],
+        "operationId" : "updateLocation",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LocationSaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Locations" ],
+        "operationId" : "deleteLocation",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "version",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/stock/batches/{id}/quantity" : {
+      "put" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "correctBatch",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchCorrectionDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/stock/out" : {
+      "post" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "bookOut",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManualBookingDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationLevelDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/locations" : {
+      "get" : {
+        "tags" : [ "Locations" ],
+        "operationId" : "listLocations",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LocationListDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Locations" ],
+        "operationId" : "createLocation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LocationSaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/stock/in" : {
+      "post" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "bookIn",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManualBookingDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationLevelDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/bookings" : {
+      "post" : {
+        "tags" : [ "Bookings" ],
+        "operationId" : "createBooking",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScanBookingDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/stock/batches/{id}/best-before" : {
+      "post" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "assignBestBefore",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchBestBeforeDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/stock/summary" : {
+      "get" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "getSummary",
+        "parameters" : [ {
+          "name" : "days",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 14
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StockSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/movements" : {
+      "get" : {
+        "tags" : [ "Movements" ],
+        "operationId" : "listMovements",
+        "parameters" : [ {
+          "name" : "articleId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "locationId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MovementPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/levels" : {
+      "get" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "listLevels",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ArticleLevelDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/bookings/{id}" : {
+      "get" : {
+        "tags" : [ "Bookings" ],
+        "operationId" : "getBooking",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BookingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/batches" : {
+      "get" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "listBatches",
+        "parameters" : [ {
+          "name" : "articleId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "locationId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StockBatchListDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/batches/{id}" : {
+      "get" : {
+        "tags" : [ "Stock" ],
+        "operationId" : "getBatch",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StockBatchDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "AuditDto" : {
+        "type" : "object",
+        "properties" : {
+          "createdDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastModifiedDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "deleted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdDate", "deleted", "lastModifiedDate", "version" ]
+      },
+      "LocationDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "name" ]
+      },
+      "LocationSaveDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/LocationDataDto"
+          }
+        },
+        "required" : [ "data" ]
+      },
+      "BatchCorrectionDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 0
+          }
+        },
+        "required" : [ "audit", "quantity" ]
+      },
+      "ManualBookingDto" : {
+        "type" : "object",
+        "properties" : {
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          },
+          "bestBefore" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "articleId", "locationId", "quantity" ]
+      },
+      "LocationLevelDto" : {
+        "type" : "object",
+        "properties" : {
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "articleId", "locationId", "quantity" ]
+      },
+      "ScanBookingDto" : {
+        "type" : "object",
+        "properties" : {
+          "ean" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "direction" : {
+            "type" : "string",
+            "enum" : [ "IN", "OUT" ]
+          }
+        },
+        "required" : [ "direction", "ean", "locationId" ]
+      },
+      "BatchBestBeforeDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          },
+          "bestBefore" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "audit", "quantity" ]
+      },
+      "StockBatchListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "articleName" : {
+            "type" : "string"
+          },
+          "articleBrand" : {
+            "type" : "string"
+          },
+          "articleImageUrl" : {
+            "type" : "string"
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "locationPath" : {
+            "type" : "string"
+          },
+          "bestBefore" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "articleId", "articleName", "id", "locationId", "locationPath", "quantity" ]
+      },
+      "StockSummaryDto" : {
+        "type" : "object",
+        "properties" : {
+          "totalUnits" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "expiringSoon" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StockBatchListDto"
+            }
+          }
+        },
+        "required" : [ "expiringSoon", "totalUnits" ]
+      },
+      "MovementListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "articleName" : {
+            "type" : "string"
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "locationPath" : {
+            "type" : "string"
+          },
+          "bestBefore" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "delta" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "IN", "OUT", "CORRECTION", "MERGE" ]
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "SCANNER", "MOBILE", "UI", "SYSTEM" ]
+          },
+          "scannerId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "articleId", "articleName", "createdDate", "delta", "id", "locationId", "locationPath", "source", "type" ]
+      },
+      "MovementPageDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MovementListDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "items", "page", "size", "totalElements", "totalPages" ]
+      },
+      "LocationListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "path" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "path" ]
+      },
+      "LocationDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/LocationDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      },
+      "ArticleLevelDto" : {
+        "type" : "object",
+        "properties" : {
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "articleId", "quantity" ]
+      },
+      "BookingDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "ean" : {
+            "type" : "string"
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "direction" : {
+            "type" : "string",
+            "enum" : [ "IN", "OUT" ]
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "SCANNER", "MOBILE", "UI", "SYSTEM" ]
+          },
+          "scanId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scannerId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "REQUESTED", "PENDING_ARTICLE", "IN_OK", "IN_OK_NEW_ARTICLE", "IN_OK_UNKNOWN_ARTICLE", "OUT_OK", "UNKNOWN_EAN", "NOT_IN_STOCK", "NO_LOCATION" ]
+          },
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "articleName" : {
+            "type" : "string"
+          },
+          "quantityAtLocation" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "direction", "ean", "locationId", "message", "source", "status" ]
+      },
+      "BookingDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/BookingDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      },
+      "StockBatchDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "locationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bestBefore" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "articleId", "locationId", "quantity" ]
+      },
+      "StockBatchDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/StockBatchDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearer" : {
+        "type" : "http",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
