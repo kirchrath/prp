@@ -5,6 +5,8 @@ public final class Topics {
 
     public static final String SCANNER = "device_scanner";
     public static final String SCAN = "device_scan";
+    public static final String FIRMWARE = "device_firmware";
+    public static final String OTA_JOB = "device_ota_job";
     public static final String STOCK_BOOKING = "stock_booking";
 
     /** Suffix of the retry topics of this service (one per consumed topic, e.g. {@code catalog_article_device_retry}). */

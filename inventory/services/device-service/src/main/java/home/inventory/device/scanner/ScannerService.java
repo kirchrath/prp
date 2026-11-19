@@ -13,6 +13,7 @@ import home.inventory.device.scanner.dto.ScannerDto;
 import home.inventory.device.scanner.dto.ScannerEventDto;
 import home.inventory.device.scanner.dto.ScannerListDto;
 import home.inventory.device.scanner.dto.ScannerSaveDto;
+import home.inventory.device.ota.OtaService;
 import home.inventory.device.scanner.dto.ButtonDto;
 import java.time.Instant;
 import java.util.Comparator;
@@ -29,17 +30,20 @@ public class ScannerService {
 
     private final ScannerRepository repository;
     private final EventPublisher events;
+    private final OtaService ota;
 
-    public ScannerService(ScannerRepository repository, EventPublisher events) {
+    public ScannerService(ScannerRepository repository, EventPublisher events, OtaService ota) {
         this.repository = repository;
         this.events = events;
+        this.ota = ota;
     }
 
     @Transactional(readOnly = true)
     public List<ScannerListDto> list() {
         return repository.findAllByDeletedFalseOrderByDeviceIdAsc().stream()
                 .map(s -> new ScannerListDto(s.id(), s.deviceId(), s.name(), s.locationId(), s.online(),
-                        s.firmwareVersion(), s.ipAddress(), s.lastSeen(), s.kind(), buttons(s)))
+                        s.firmwareVersion(), s.ipAddress(), s.lastSeen(), s.kind(), buttons(s),
+                        ota.lastJob(s.id()).orElse(null)))
                 .toList();
     }
 
@@ -70,8 +74,8 @@ public class ScannerService {
         save(VersionCheck.require(load(id), version).withDeleted(true));
     }
 
-    public void handleStatus(String deviceId, StatusMessageDto status) {
-        save(find(deviceId).seen(status.online(), status.fw(), status.ip(), DeviceKind.fromStatus(status.kind()),
+    public Scanner handleStatus(String deviceId, StatusMessageDto status) {
+        return save(find(deviceId).seen(status.online(), status.fw(), status.ip(), DeviceKind.fromStatus(status.kind()),
                 Instant.now()));
     }
 

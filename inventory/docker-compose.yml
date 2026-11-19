@@ -89,6 +89,9 @@ services:
       MQTT_URL: tcp://mosquitto:1883
       MQTT_USERNAME: device-service
       MQTT_PASSWORD: ${MQTT_PASSWORD}
+    # firmware download for OTA updates of the ESP32 devices (only /ota/<token>, see docs/hardware.md)
+    ports:
+      - "${OTA_PORT:-8088}:8088"
     networks:
       - internal
       - proxy

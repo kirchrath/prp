@@ -89,6 +89,110 @@
         }
       }
     },
+    "/api/device/scanners/{id}/firmware-update" : {
+      "post" : {
+        "tags" : [ "FirmwareUpdates" ],
+        "summary" : "Installs firmware on one device (default: newest of its kind); 409 if offline",
+        "operationId" : "startFirmwareUpdate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "firmwareId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/device/firmware" : {
+      "get" : {
+        "tags" : [ "Firmware" ],
+        "operationId" : "listFirmware",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FirmwareListDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Firmware" ],
+        "summary" : "Uploads a firmware image (firmware.bin); kind and version are read from the image",
+        "operationId" : "uploadFirmware",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/device/firmware-updates" : {
+      "post" : {
+        "tags" : [ "FirmwareUpdates" ],
+        "summary" : "Installs the newest firmware on all online devices of a kind that need it",
+        "operationId" : "startFirmwareRollout",
+        "parameters" : [ {
+          "name" : "kind",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "SCANNER", "BUTTONS" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OtaRolloutDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/device/scanners" : {
       "get" : {
         "tags" : [ "Scanners" ],
@@ -106,6 +210,34 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/device/firmware/{id}" : {
+      "delete" : {
+        "tags" : [ "Firmware" ],
+        "operationId" : "deleteFirmware",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "version",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         }
       }
@@ -203,6 +335,40 @@
         },
         "required" : [ "audit", "data" ]
       },
+      "OtaRolloutDto" : {
+        "type" : "object",
+        "properties" : {
+          "started" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "started" ]
+      },
+      "OtaJobDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetVersion" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string",
+            "enum" : [ "REQUESTED", "DOWNLOADING", "INSTALLED", "SUCCESS", "FAILED" ]
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "lastModifiedDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "id", "lastModifiedDate", "state", "targetVersion" ]
+      },
       "ScannerListDto" : {
         "type" : "object",
         "properties" : {
@@ -242,6 +408,9 @@
             "items" : {
               "$ref" : "#/components/schemas/ButtonDto"
             }
+          },
+          "ota" : {
+            "$ref" : "#/components/schemas/OtaJobDto"
           }
         },
         "required" : [ "buttons", "deviceId", "id", "kind", "online" ]
@@ -257,6 +426,41 @@
           }
         },
         "required" : [ "audit", "data" ]
+      },
+      "FirmwareListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "SCANNER", "BUTTONS" ]
+          },
+          "firmwareVersion" : {
+            "type" : "string"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "createdDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "createdDate", "fileName", "firmwareVersion", "id", "kind", "sha256", "size", "version" ]
       }
     },
     "securitySchemes" : {

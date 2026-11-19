@@ -14,6 +14,16 @@ public class KafkaConfig {
     }
 
     @Bean
+    NewTopic firmwareTopic() {
+        return TopicBuilder.name(Topics.FIRMWARE).partitions(1).replicas(1).config("retention.ms", "-1").build();
+    }
+
+    @Bean
+    NewTopic otaJobTopic() {
+        return TopicBuilder.name(Topics.OTA_JOB).partitions(1).replicas(1).config("retention.ms", "-1").build();
+    }
+
+    @Bean
     NewTopic scanTopic() {
         return TopicBuilder.name(Topics.SCAN).partitions(1).replicas(1).config("retention.ms", "-1").build();
     }

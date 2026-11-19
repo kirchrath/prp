@@ -32,8 +32,10 @@ public class MqttTestClient {
             client = new MqttClient("tcp://" + mosquitto.getHost() + ":" + mosquitto.getMappedPort(1883),
                     "test-" + UUID.randomUUID(), new MemoryPersistence());
             client.connect();
-            client.subscribe("inventory/scanner/+/feedback", (topic, message) ->
-                    received.add(new String[]{topic, new String(message.getPayload())}));
+            client.subscribe(new String[]{"inventory/scanner/+/feedback", "inventory/scanner/+/ota"},
+                    new int[]{1, 1}, new org.eclipse.paho.client.mqttv3.IMqttMessageListener[]{
+                            (topic, message) -> received.add(new String[]{topic, new String(message.getPayload())}),
+                            (topic, message) -> received.add(new String[]{topic, new String(message.getPayload())})});
         }
         return client;
     }
@@ -48,6 +50,15 @@ public class MqttTestClient {
     public List<JsonNode> feedback(String deviceId, int count) throws Exception {
         client();
         String topic = "inventory/scanner/" + deviceId + "/feedback";
+        Awaitility.await().atMost(Duration.ofSeconds(20))
+                .until(() -> received.stream().filter(r -> r[0].equals(topic)).count() >= count);
+        return received.stream().filter(r -> r[0].equals(topic)).map(r -> json.readTree(r[1])).toList();
+    }
+
+    /** OTA commands for a device, waiting until at least {@code count} arrived. */
+    public List<JsonNode> otaCommands(String deviceId, int count) throws Exception {
+        client();
+        String topic = "inventory/scanner/" + deviceId + "/ota";
         Awaitility.await().atMost(Duration.ofSeconds(20))
                 .until(() -> received.stream().filter(r -> r[0].equals(topic)).count() >= count);
         return received.stream().filter(r -> r[0].equals(topic)).map(r -> json.readTree(r[1])).toList();

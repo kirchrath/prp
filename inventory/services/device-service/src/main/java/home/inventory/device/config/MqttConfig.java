@@ -44,6 +44,7 @@ public class MqttConfig {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 properties.clientId() + "-in", factory,
                 properties.topicPrefix() + "/+/scan", properties.topicPrefix() + "/+/button",
+                properties.topicPrefix() + "/+/otastate",
                 properties.topicPrefix() + "/+/status");
         adapter.setQos(1);
         return IntegrationFlow.from(adapter)

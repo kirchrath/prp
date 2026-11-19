@@ -1,5 +1,6 @@
 package home.inventory.device.common;
 
+import home.inventory.device.firmware.InvalidFirmwareException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiControllerAdvice {
+
+    @ExceptionHandler(InvalidFirmwareException.class)
+    ProblemDetail invalidFirmware(InvalidFirmwareException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
 
     @ExceptionHandler(NotFoundException.class)
     ProblemDetail notFound(NotFoundException e) {

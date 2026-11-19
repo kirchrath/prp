@@ -16,6 +16,11 @@ spring:
     default-schema: device
   jackson:
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      # firmware images (min_spiffs OTA partition: 1.875 MB)
+      max-file-size: 4MB
+      max-request-size: 4MB
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -57,3 +62,8 @@ device:
     username: ${MQTT_USERNAME:device-service}
     password: ${MQTT_PASSWORD:}
     topic-prefix: ${MQTT_TOPIC_PREFIX:inventory/scanner}
+  ota:
+    # firmware download server for the devices (http://<docker host>:<port>/ota/<token>)
+    port: ${OTA_PORT:8088}
+    # time a device has to download and install an update
+    token-validity: 15m

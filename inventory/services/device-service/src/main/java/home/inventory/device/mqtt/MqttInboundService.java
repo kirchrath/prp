@@ -1,6 +1,9 @@
 package home.inventory.device.mqtt;
 
 import home.inventory.device.mqtt.dto.ButtonMessageDto;
+import home.inventory.device.mqtt.dto.OtaStateMessageDto;
+import home.inventory.device.ota.OtaService;
+import home.inventory.device.scanner.Scanner;
 import home.inventory.device.mqtt.dto.ScanMessageDto;
 import home.inventory.device.mqtt.dto.StatusMessageDto;
 import home.inventory.device.scan.FeedbackService;
@@ -25,12 +28,15 @@ public class MqttInboundService {
     private final ScanService scans;
     private final FeedbackService feedback;
     private final ObjectMapper json;
+    private final OtaService ota;
 
-    public MqttInboundService(ScannerService scanners, ScanService scans, FeedbackService feedback, ObjectMapper json) {
+    public MqttInboundService(ScannerService scanners, ScanService scans, FeedbackService feedback, ObjectMapper json,
+                              OtaService ota) {
         this.scanners = scanners;
         this.scans = scans;
         this.feedback = feedback;
         this.json = json;
+        this.ota = ota;
     }
 
     public void handle(String topic, String payload) {
@@ -43,9 +49,15 @@ public class MqttInboundService {
         String kind = parts[parts.length - 1];
         try {
             if ("status".equals(kind)) {
-                scanners.handleStatus(deviceId, json.readValue(payload, StatusMessageDto.class));
+                StatusMessageDto status = json.readValue(payload, StatusMessageDto.class);
+                Scanner scanner = scanners.handleStatus(deviceId, status);
+                if (status.online()) {
+                    ota.statusReported(scanner, status.fw());
+                }
             } else if ("scan".equals(kind)) {
                 scans.handleScan(deviceId, json.readValue(payload, ScanMessageDto.class));
+            } else if ("otastate".equals(kind)) {
+                ota.handleState(deviceId, json.readValue(payload, OtaStateMessageDto.class));
             } else if ("button".equals(kind)) {
                 scans.handlePress(deviceId, json.readValue(payload, ButtonMessageDto.class));
             } else {
