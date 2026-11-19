@@ -5,6 +5,7 @@ import home.inventory.device.common.EventPublisher;
 import home.inventory.device.common.Gtin;
 import home.inventory.device.common.OutgoingEvent;
 import home.inventory.device.config.Topics;
+import home.inventory.device.mqtt.dto.ButtonMessageDto;
 import home.inventory.device.mqtt.dto.ScanMessageDto;
 import home.inventory.device.scan.dto.BookingDataDto;
 import home.inventory.device.scan.dto.BookingEventDto;
@@ -16,6 +17,7 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class ScanService {
     static final Set<String> DIRECTIONS = Set.of("IN", "OUT");
     static final String PENDING_ARTICLE = "PENDING_ARTICLE";
     static final String REQUESTED = "REQUESTED";
+    static final int MAX_BUTTONS = 8;
 
     private final ScanRepository repository;
     private final ScannerService scanners;
@@ -73,6 +76,37 @@ public class ScanService {
         save(scan);
     }
 
+    /** Button of a button box pressed: books one unit of the article assigned to the button. */
+    public void handlePress(String deviceId, ButtonMessageDto message) {
+        Scanner scanner = scanners.register(deviceId);
+        String direction = message.direction() == null ? "" : message.direction().trim().toUpperCase(Locale.ROOT);
+        if (message.button() == null || message.button() < 1 || message.button() > MAX_BUTTONS
+                || !DIRECTIONS.contains(direction) || message.seq() == null || message.bootId() == null) {
+            feedback.send(deviceId, message.seq(), FeedbackService.ERROR, null, null, "Ungültige Tasten-Nachricht");
+            return;
+        }
+        if (scanner.isDuplicate(message.bootId(), message.seq())) {
+            return;
+        }
+        scanner = scanners.save(scanner.withLastScan(message.bootId(), message.seq(), Instant.now()));
+        UUID article = scanner.articleFor(message.button()).orElse(null);
+        Scan scan = Scan.createPress(scanner.id(), deviceId, message.button(), article, direction,
+                scanner.locationId(), message.seq(), message.bootId());
+        if (scanner.locationId() == null) {
+            String text = "Knopfleiste " + scanner.displayName() + " ist keinem Lagerort zugeordnet";
+            save(scan.withResult(ScanStatus.REJECTED, FeedbackService.NO_LOCATION, null, null, text, null));
+            feedback.send(deviceId, message.seq(), FeedbackService.NO_LOCATION, null, null, text);
+            return;
+        }
+        if (article == null) {
+            String text = "Taster " + message.button() + " ist keinem Artikel zugeordnet";
+            save(scan.withResult(ScanStatus.REJECTED, FeedbackService.NO_ARTICLE, null, null, text, null));
+            feedback.send(deviceId, message.seq(), FeedbackService.NO_ARTICLE, null, null, text);
+            return;
+        }
+        save(scan);
+    }
+
     /** Result of the stock service for a scan of this service. */
     public void handleBooking(BookingEventDto event) {
         BookingDataDto data = event.data();
@@ -97,6 +131,6 @@ public class ScanService {
         events.publish(new OutgoingEvent(Topics.SCAN, saved.id(), new ScanEventDto(saved.id(), AuditMapper.toDto(saved),
                 new ScanDataDto(saved.scannerId(), saved.deviceId(), saved.ean(), saved.direction(), saved.locationId(),
                         saved.seq(), saved.bootId(), saved.status(), saved.result(), saved.articleName(),
-                        saved.quantity(), saved.message(), saved.bookingId()))));
+                        saved.quantity(), saved.message(), saved.bookingId(), saved.button(), saved.articleId()))));
     }
 }

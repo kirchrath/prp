@@ -43,7 +43,8 @@ public class MqttConfig {
                                     MqttInboundService inbound) {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 properties.clientId() + "-in", factory,
-                properties.topicPrefix() + "/+/scan", properties.topicPrefix() + "/+/status");
+                properties.topicPrefix() + "/+/scan", properties.topicPrefix() + "/+/button",
+                properties.topicPrefix() + "/+/status");
         adapter.setQos(1);
         return IntegrationFlow.from(adapter)
                 .handle(String.class, (payload, headers) -> {

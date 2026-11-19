@@ -15,7 +15,7 @@ public class ApiControllerAdvice {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
-    @ExceptionHandler(OptimisticLockingFailureException.class)
+    @ExceptionHandler({ConflictException.class, OptimisticLockingFailureException.class})
     ProblemDetail conflict(RuntimeException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
     }

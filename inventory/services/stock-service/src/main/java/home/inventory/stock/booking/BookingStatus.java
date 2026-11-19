@@ -16,6 +16,8 @@ public enum BookingStatus {
     UNKNOWN_EAN,
     /** Scanner sent a code that is not a formally valid GTIN (length, digits, check digit). */
     INVALID_EAN,
+    /** Button press for an article that does not exist (any more). */
+    ARTICLE_NOT_FOUND,
     /** Removal although nothing is in stock at that location. */
     NOT_IN_STOCK,
     /** Location missing or deleted. */

@@ -62,7 +62,7 @@ public class BookingService {
     /** Scan of an ESP32 scanner (topic {@code device_scan}); every scan is booked only once. */
     public void handleScan(ScanEventDto event) {
         var data = event.data();
-        if (event.audit().deleted() || !REQUESTED.equals(data.status()) || data.ean() == null
+        if (event.audit().deleted() || !REQUESTED.equals(data.status()) || (data.ean() == null && data.articleId() == null)
                 || data.locationId() == null || data.direction() == null || repository.existsByScanId(event.id())) {
             return;
         }
@@ -70,6 +70,10 @@ public class BookingService {
         try {
             direction = Direction.valueOf(data.direction());
         } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (data.articleId() != null) {
+            book(Booking.createForArticle(data.articleId(), data.locationId(), direction, event.id(), data.scannerId()));
             return;
         }
         Optional<String> ean = Gtin.normalize(data.ean());
@@ -107,13 +111,24 @@ public class BookingService {
         if (locations.findActive(booking.locationId()).isEmpty()) {
             return booking.withResult(BookingStatus.NO_LOCATION, null, null, null, "Lagerort nicht vorhanden");
         }
+        if (booking.ean() == null) {
+            // button press: fixed article
+            Optional<ArticleCopy> article = articles.findByArticleId(booking.articleId()).filter(a -> !a.deleted());
+            return article.isEmpty()
+                    ? booking.withResult(BookingStatus.ARTICLE_NOT_FOUND, booking.articleId(), null, null,
+                            "Artikel nicht vorhanden")
+                    : processArticle(booking, article.get(), false);
+        }
         Optional<ArticleCopy> found = findByEan(booking.ean());
         if (found.isEmpty()) {
             return booking.direction() == Direction.IN
                     ? booking.withResult(BookingStatus.PENDING_ARTICLE, null, null, null, "Artikel wird angelegt …")
                     : booking.withResult(BookingStatus.UNKNOWN_EAN, null, null, null, "Unbekannter Barcode " + booking.ean());
         }
-        ArticleCopy article = found.get();
+        return processArticle(booking, found.get(), articleWasPending);
+    }
+
+    private Booking processArticle(Booking booking, ArticleCopy article, boolean articleWasPending) {
         BookingContext context = new BookingContext(booking.source(), booking.scannerId(), booking.username(), booking.id());
         if (booking.direction() == Direction.IN) {
             long quantity = stock.stockIn(article.articleId(), booking.locationId(), 1, null, context);

@@ -19,7 +19,7 @@ public record Booking(
         @CreatedDate Instant createdDate,
         @LastModifiedDate Instant lastModifiedDate,
         boolean deleted,
-        String ean,
+        @Nullable String ean,
         UUID locationId,
         Direction direction,
         MovementSource source,
@@ -36,6 +36,13 @@ public record Booking(
                                  @Nullable UUID scanId, @Nullable UUID scannerId, @Nullable String username) {
         return new Booking(null, null, null, null, false, ean, locationId, direction, source, scanId, scannerId,
                 username, BookingStatus.REQUESTED, null, null, null, "");
+    }
+
+    /** Press of a button box: the article is fixed, there is no barcode. */
+    public static Booking createForArticle(UUID articleId, UUID locationId, Direction direction, UUID scanId,
+                                           @Nullable UUID scannerId) {
+        return new Booking(null, null, null, null, false, null, locationId, direction, MovementSource.BUTTON, scanId,
+                scannerId, null, BookingStatus.REQUESTED, articleId, null, null, "");
     }
 
     @Override

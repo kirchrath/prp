@@ -11,6 +11,7 @@ import home.inventory.device.mqtt.MqttInboundService;
 import home.inventory.device.scan.Scan;
 import home.inventory.device.scan.ScanRepository;
 import home.inventory.device.scan.ScanStatus;
+import home.inventory.device.scanner.DeviceKind;
 import home.inventory.device.scanner.Scanner;
 import home.inventory.device.scanner.ScannerRepository;
 import java.time.Duration;
@@ -50,7 +51,7 @@ class DeviceIntegrationTest extends AbstractIntegrationTest {
     private void assign(Scanner scanner, UUID location) throws Exception {
         long version = scanners.findById(scanner.id()).orElseThrow().version();
         mvc.perform(json(put("/api/device/scanners/" + scanner.id()),
-                        "{\"audit\":%s,\"data\":{\"name\":\" Vorrat \",\"locationId\":\"%s\",\"online\":false}}".formatted(audit(version), location)))
+                        "{\"audit\":%s,\"data\":{\"name\":\" Vorrat \",\"locationId\":\"%s\",\"online\":false,\"buttons\":[]}}".formatted(audit(version), location)))
                 .andExpect(status().isNoContent());
     }
 
@@ -83,12 +84,12 @@ class DeviceIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.ipAddress").value("192.168.1.9"))
                 .andExpect(jsonPath("$.audit.version").value(1));
 
-        mvc.perform(json(put("/api/device/scanners/" + scanner.id()), "{\"audit\":%s,\"data\":{\"name\":\" \",\"online\":false}}".formatted(audit(0))))
+        mvc.perform(json(put("/api/device/scanners/" + scanner.id()), "{\"audit\":%s,\"data\":{\"name\":\" \",\"online\":false,\"buttons\":[]}}".formatted(audit(0))))
                 .andExpect(status().isConflict());
-        mvc.perform(json(put("/api/device/scanners/" + scanner.id()), "{\"audit\":%s,\"data\":{\"name\":\" \",\"online\":false}}".formatted(audit(1))))
+        mvc.perform(json(put("/api/device/scanners/" + scanner.id()), "{\"audit\":%s,\"data\":{\"name\":\" \",\"online\":false,\"buttons\":[]}}".formatted(audit(1))))
                 .andExpect(status().isNoContent());
         mvc.perform(get("/api/device/scanners/" + scanner.id()).with(USER)).andExpect(jsonPath("$.data.name").doesNotExist());
-        mvc.perform(json(put("/api/device/scanners/" + scanner.id()), "{\"audit\":%s,\"data\":{\"online\":false}}".formatted(audit(2))))
+        mvc.perform(json(put("/api/device/scanners/" + scanner.id()), "{\"audit\":%s,\"data\":{\"online\":false,\"buttons\":[]}}".formatted(audit(2))))
                 .andExpect(status().isNoContent());
 
         assign(scanner, UUID.randomUUID());
@@ -205,5 +206,83 @@ class DeviceIntegrationTest extends AbstractIntegrationTest {
         assertThat(scan.ean()).isEqualTo("0036000291452");
         JsonNode event = kafka.await("device_scan", scan.id().toString(), 1).getFirst();
         assertThat(event.get("data").get("ean").asString()).isEqualTo("0036000291452");
+    }
+
+    private void configureButtons(Scanner scanner, UUID location, String buttons) throws Exception {
+        long version = scanners.findById(scanner.id()).orElseThrow().version();
+        mvc.perform(json(put("/api/device/scanners/" + scanner.id()),
+                        "{\"audit\":%s,\"data\":{\"name\":\"Gemüse\",\"locationId\":%s,\"online\":false,\"buttons\":%s}}"
+                                .formatted(audit(version), location == null ? null : "\"" + location + "\"", buttons)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void buttonBoxesBookTheAssignedArticle() throws Exception {
+        String device = device();
+        String prefix = "inventory/scanner/" + device + "/";
+        mqtt.publish(prefix + "status", "{\"online\":true,\"fw\":\"1.0\",\"kind\":\"buttons\",\"bootId\":\"b1\"}");
+        Awaitility.await().atMost(Duration.ofSeconds(20)).until(() -> scanners.findByDeviceId(device)
+                .map(s -> s.kind() == DeviceKind.BUTTONS).orElse(false));
+        Scanner box = awaitScanner(device);
+
+        // no location yet
+        mqtt.publish(prefix + "button", "{\"button\":1,\"direction\":\"IN\",\"seq\":1,\"bootId\":\"b1\"}");
+        assertThat(mqtt.feedback(device, 1).getFirst().get("result").asString()).isEqualTo("NO_LOCATION");
+
+        UUID location = UUID.randomUUID();
+        UUID tomatoes = UUID.randomUUID();
+        UUID cucumbers = UUID.randomUUID();
+        configureButtons(box, location, "[{\"button\":1,\"articleId\":\"%s\"},{\"button\":3,\"articleId\":\"%s\"}]"
+                .formatted(tomatoes, cucumbers));
+        mvc.perform(get("/api/device/scanners/" + box.id()).with(USER))
+                .andExpect(jsonPath("$.data.kind").value("BUTTONS"))
+                .andExpect(jsonPath("$.data.buttons[0].button").value(1))
+                .andExpect(jsonPath("$.data.buttons[1].articleId").value(cucumbers.toString()));
+        mvc.perform(get("/api/device/scanners").with(USER))
+                .andExpect(jsonPath("$[?(@.deviceId=='" + device + "')].buttons.length()").value(2));
+
+        // short press on button 3 -> IN for the cucumbers, forwarded to the stock service
+        mqtt.publish(prefix + "button", "{\"button\":3,\"direction\":\"in\",\"seq\":2,\"bootId\":\"b1\"}");
+        Scan press = awaitScan(device, 2);
+        assertThat(press.ean()).isNull();
+        assertThat(press.button()).isEqualTo(3);
+        assertThat(press.articleId()).isEqualTo(cucumbers);
+        JsonNode event = kafka.await("device_scan", press.id().toString(), 1).getFirst();
+        assertThat(event.get("data").get("articleId").asString()).isEqualTo(cucumbers.toString());
+        assertThat(event.get("data").get("direction").asString()).isEqualTo("IN");
+        booking(press.id(), "IN_OK", "Gurken eingelagert");
+        assertThat(mqtt.feedback(device, 2).get(1).get("success").asBoolean()).isTrue();
+
+        // button without article
+        mqtt.publish(prefix + "button", "{\"button\":2,\"direction\":\"OUT\",\"seq\":3,\"bootId\":\"b1\"}");
+        JsonNode noArticle = mqtt.feedback(device, 3).get(2);
+        assertThat(noArticle.get("result").asString()).isEqualTo("NO_ARTICLE");
+        assertThat(noArticle.get("message").asString()).isEqualTo("Taster 2 ist keinem Artikel zugeordnet");
+        assertThat(awaitScan(device, 3).status()).isEqualTo(ScanStatus.REJECTED);
+
+        // redelivery ignored; invalid messages
+        mqtt.publish(prefix + "button", "{\"button\":3,\"direction\":\"IN\",\"seq\":2,\"bootId\":\"b1\"}");
+        mqtt.publish(prefix + "button", "{\"direction\":\"IN\",\"seq\":4,\"bootId\":\"b1\"}");
+        mqtt.publish(prefix + "button", "{\"button\":0,\"direction\":\"IN\",\"seq\":5,\"bootId\":\"b1\"}");
+        mqtt.publish(prefix + "button", "{\"button\":9,\"direction\":\"IN\",\"seq\":6,\"bootId\":\"b1\"}");
+        mqtt.publish(prefix + "button", "{\"button\":1,\"seq\":7,\"bootId\":\"b1\"}");
+        mqtt.publish(prefix + "button", "{\"button\":1,\"direction\":\"IN\",\"bootId\":\"b1\"}");
+        mqtt.publish(prefix + "button", "{\"button\":1,\"direction\":\"IN\",\"seq\":8}");
+        mqtt.publish(prefix + "button", "kaputt");
+        List<JsonNode> errors = mqtt.feedback(device, 10);
+        assertThat(errors.subList(3, 10)).allSatisfy(f -> assertThat(f.get("result").asString()).isEqualTo("ERROR"));
+
+        // a button can only be assigned once; offline status keeps the kind
+        long version = scanners.findById(box.id()).orElseThrow().version();
+        mvc.perform(json(put("/api/device/scanners/" + box.id()),
+                        "{\"audit\":%s,\"data\":{\"online\":false,\"buttons\":[{\"button\":1,\"articleId\":\"%s\"},{\"button\":1,\"articleId\":\"%s\"}]}}"
+                                .formatted(audit(version), tomatoes, cucumbers)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Taster 1 ist doppelt belegt"));
+        mqtt.publish(prefix + "status", "{\"online\":false}");
+        Awaitility.await().atMost(Duration.ofSeconds(20)).until(() -> !scanners.findByDeviceId(device).orElseThrow().online());
+        assertThat(scanners.findByDeviceId(device).orElseThrow().kind()).isEqualTo(DeviceKind.BUTTONS);
+        // a status with another kind name counts as scanner
+        assertThat(DeviceKind.fromStatus("scanner")).isEqualTo(DeviceKind.SCANNER);
     }
 }

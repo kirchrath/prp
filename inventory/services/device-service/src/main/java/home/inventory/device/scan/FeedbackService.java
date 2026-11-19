@@ -15,6 +15,7 @@ public class FeedbackService {
     public static final String ERROR = "ERROR";
     public static final String NO_LOCATION = "NO_LOCATION";
     public static final String INVALID_EAN = "INVALID_EAN";
+    public static final String NO_ARTICLE = "NO_ARTICLE";
     private static final Set<String> SUCCESS = Set.of("IN_OK", "IN_OK_NEW_ARTICLE", "IN_OK_UNKNOWN_ARTICLE", "OUT_OK");
 
     private final MqttPublisher mqtt;

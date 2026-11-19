@@ -31,9 +31,10 @@ class UuidGeneratingCallbackTest {
         assertThat(seen.isDuplicate("b", 5)).isTrue();
         assertThat(seen.isDuplicate("b", 6)).isFalse();
         assertThat(seen.isDuplicate("other", 1)).isFalse();
-        Scanner noSeq = new Scanner(null, null, null, null, false, "x", null, null, true, null, null, null, "b", null);
+        Scanner noSeq = new Scanner(null, null, null, null, false, "x", null, null, true, null, null, null, "b", null,
+                home.inventory.device.scanner.DeviceKind.SCANNER, java.util.Set.of());
         assertThat(noSeq.isDuplicate("b", 1)).isFalse();
         assertThat(fresh.displayName()).isEqualTo("x");
-        assertThat(fresh.withAssignment("Küche", null).displayName()).isEqualTo("Küche");
+        assertThat(fresh.withAssignment("Küche", null, java.util.Set.of()).displayName()).isEqualTo("Küche");
     }
 }

@@ -134,6 +134,22 @@
         },
         "required" : [ "createdDate", "deleted", "lastModifiedDate", "version" ]
       },
+      "ButtonDto" : {
+        "type" : "object",
+        "properties" : {
+          "button" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 8,
+            "minimum" : 1
+          },
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "articleId", "button" ]
+      },
       "ScannerDataDto" : {
         "type" : "object",
         "properties" : {
@@ -161,9 +177,19 @@
           "lastSeen" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "SCANNER", "BUTTONS" ]
+          },
+          "buttons" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ButtonDto"
+            }
           }
         },
-        "required" : [ "online" ]
+        "required" : [ "buttons", "online" ]
       },
       "ScannerSaveDto" : {
         "type" : "object",
@@ -206,9 +232,19 @@
           "lastSeen" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "SCANNER", "BUTTONS" ]
+          },
+          "buttons" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ButtonDto"
+            }
           }
         },
-        "required" : [ "deviceId", "id", "online" ]
+        "required" : [ "buttons", "deviceId", "id", "kind", "online" ]
       },
       "ScannerDto" : {
         "type" : "object",

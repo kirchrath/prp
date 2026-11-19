@@ -101,7 +101,7 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
 
     private static ScanEventDto scanEvent(UUID id, boolean deleted, String status, String ean, UUID location, String direction) {
         return new ScanEventDto(id, new AuditDto(Instant.now(), Instant.now(), 0L, deleted),
-                new ScanDataDto(ean, direction, location, UUID.randomUUID(), status));
+                new ScanDataDto(ean, direction, location, UUID.randomUUID(), status, null));
     }
 
     @Test
@@ -163,5 +163,45 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
         assertThat(booking.ean()).isEqualTo("4006381333932");
         JsonNode event = kafka.await("stock_booking", booking.id().toString(), 1).getFirst();
         assertThat(event.get("data").get("message").asString()).startsWith("Ungültige EAN");
+    }
+
+    private Booking press(UUID article, UUID location, String direction) {
+        UUID scan = UUID.randomUUID();
+        bookings.handleScan(new ScanEventDto(scan, new AuditDto(Instant.now(), Instant.now(), 0L, false),
+                new ScanDataDto(null, direction, location, UUID.randomUUID(), "REQUESTED", article)));
+        return repository.findAll().stream().filter(b -> scan.equals(b.scanId())).findFirst().orElseThrow();
+    }
+
+    @Test
+    void buttonPressesBookAFixedArticleWithoutBarcode() throws Exception {
+        UUID location = location(unique("Gemüsefach"), null);
+        UUID tomatoes = article("Tomaten"); // no barcode
+
+        Booking in = press(tomatoes, location, "IN");
+        assertThat(in.status()).isEqualTo(BookingStatus.IN_OK);
+        assertThat(in.ean()).isNull();
+        assertThat(in.source()).isEqualTo(home.inventory.stock.movement.MovementSource.BUTTON);
+        assertThat(in.articleName()).isEqualTo("Tomaten");
+        assertThat(in.quantityAtLocation()).isEqualTo(1);
+        assertThat(press(tomatoes, location, "IN").quantityAtLocation()).isEqualTo(2);
+
+        Booking out = press(tomatoes, location, "OUT");
+        assertThat(out.status()).isEqualTo(BookingStatus.OUT_OK);
+        assertThat(out.quantityAtLocation()).isEqualTo(1);
+        mvc.perform(get("/api/stock/movements").param("articleId", tomatoes.toString()).with(USER))
+                .andExpect(jsonPath("$.items[0].source").value("BUTTON"));
+        press(tomatoes, location, "OUT");
+        assertThat(press(tomatoes, location, "OUT").status()).isEqualTo(BookingStatus.NOT_IN_STOCK);
+
+        // unknown or deleted article
+        assertThat(press(UUID.randomUUID(), location, "IN").status()).isEqualTo(BookingStatus.ARTICLE_NOT_FOUND);
+        article(tomatoes, 1, true, "Tomaten", "ACTIVE", null);
+        Booking gone = press(tomatoes, location, "IN");
+        assertThat(gone.status()).isEqualTo(BookingStatus.ARTICLE_NOT_FOUND);
+        assertThat(gone.message()).isEqualTo("Artikel nicht vorhanden");
+        // the booking without barcode is readable via the API
+        mvc.perform(get("/api/stock/bookings/" + in.id()).with(USER))
+                .andExpect(jsonPath("$.data.ean").doesNotExist())
+                .andExpect(jsonPath("$.data.source").value("BUTTON"));
     }
 }

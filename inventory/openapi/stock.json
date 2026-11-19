@@ -701,7 +701,7 @@
           },
           "source" : {
             "type" : "string",
-            "enum" : [ "SCANNER", "MOBILE", "UI", "SYSTEM" ]
+            "enum" : [ "SCANNER", "BUTTON", "MOBILE", "UI", "SYSTEM" ]
           },
           "scannerId" : {
             "type" : "string",
@@ -806,7 +806,7 @@
           },
           "source" : {
             "type" : "string",
-            "enum" : [ "SCANNER", "MOBILE", "UI", "SYSTEM" ]
+            "enum" : [ "SCANNER", "BUTTON", "MOBILE", "UI", "SYSTEM" ]
           },
           "scanId" : {
             "type" : "string",
@@ -821,7 +821,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "REQUESTED", "PENDING_ARTICLE", "IN_OK", "IN_OK_NEW_ARTICLE", "IN_OK_UNKNOWN_ARTICLE", "OUT_OK", "UNKNOWN_EAN", "INVALID_EAN", "NOT_IN_STOCK", "NO_LOCATION" ]
+            "enum" : [ "REQUESTED", "PENDING_ARTICLE", "IN_OK", "IN_OK_NEW_ARTICLE", "IN_OK_UNKNOWN_ARTICLE", "OUT_OK", "UNKNOWN_EAN", "INVALID_EAN", "ARTICLE_NOT_FOUND", "NOT_IN_STOCK", "NO_LOCATION" ]
           },
           "articleId" : {
             "type" : "string",
@@ -838,7 +838,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "direction", "ean", "locationId", "message", "source", "status" ]
+        "required" : [ "direction", "locationId", "message", "source", "status" ]
       },
       "BookingDto" : {
         "type" : "object",

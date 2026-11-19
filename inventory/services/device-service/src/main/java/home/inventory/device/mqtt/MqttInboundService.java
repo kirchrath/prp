@@ -1,5 +1,6 @@
 package home.inventory.device.mqtt;
 
+import home.inventory.device.mqtt.dto.ButtonMessageDto;
 import home.inventory.device.mqtt.dto.ScanMessageDto;
 import home.inventory.device.mqtt.dto.StatusMessageDto;
 import home.inventory.device.scan.FeedbackService;
@@ -45,13 +46,15 @@ public class MqttInboundService {
                 scanners.handleStatus(deviceId, json.readValue(payload, StatusMessageDto.class));
             } else if ("scan".equals(kind)) {
                 scans.handleScan(deviceId, json.readValue(payload, ScanMessageDto.class));
+            } else if ("button".equals(kind)) {
+                scans.handlePress(deviceId, json.readValue(payload, ButtonMessageDto.class));
             } else {
                 log.debug("Ignoring topic {}", topic);
             }
         } catch (JacksonException e) {
             log.warn("Invalid message on {}: {}", topic, e.getMessage());
-            if ("scan".equals(kind)) {
-                feedback.send(deviceId, null, FeedbackService.ERROR, null, null, "Ungültige Scan-Nachricht");
+            if ("scan".equals(kind) || "button".equals(kind)) {
+                feedback.send(deviceId, null, FeedbackService.ERROR, null, null, "Ungültige Nachricht");
             }
         }
     }

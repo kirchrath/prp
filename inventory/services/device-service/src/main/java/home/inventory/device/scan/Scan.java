@@ -20,7 +20,7 @@ public record Scan(
         boolean deleted,
         UUID scannerId,
         String deviceId,
-        String ean,
+        @Nullable String ean,
         String direction,
         @Nullable UUID locationId,
         long seq,
@@ -30,38 +30,47 @@ public record Scan(
         @Nullable String articleName,
         @Nullable Long quantity,
         @Nullable String message,
-        @Nullable UUID bookingId) implements AuditedEntity<Scan> {
+        @Nullable UUID bookingId,
+        @Nullable Integer button,
+        @Nullable UUID articleId) implements AuditedEntity<Scan> {
 
     public static Scan create(UUID scannerId, String deviceId, String ean, String direction, @Nullable UUID locationId,
                               long seq, String bootId) {
         return new Scan(null, null, null, null, false, scannerId, deviceId, ean, direction, locationId, seq, bootId,
-                ScanStatus.REQUESTED, null, null, null, null, null);
+                ScanStatus.REQUESTED, null, null, null, null, null, null, null);
+    }
+
+    /** Press of a button box: button number and the article assigned to it (may be missing). */
+    public static Scan createPress(UUID scannerId, String deviceId, int button, @Nullable UUID articleId,
+                                   String direction, @Nullable UUID locationId, long seq, String bootId) {
+        return new Scan(null, null, null, null, false, scannerId, deviceId, null, direction, locationId, seq, bootId,
+                ScanStatus.REQUESTED, null, null, null, null, null, button, articleId);
     }
 
     @Override
     public Scan withId(UUID id) {
         return new Scan(id, version, createdDate, lastModifiedDate, deleted, scannerId, deviceId, ean, direction,
-                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId);
+                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId, button, articleId);
     }
 
     public Scan withVersion(Long version) {
         return new Scan(id, version, createdDate, lastModifiedDate, deleted, scannerId, deviceId, ean, direction,
-                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId);
+                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId, button, articleId);
     }
 
     public Scan withCreatedDate(Instant createdDate) {
         return new Scan(id, version, createdDate, lastModifiedDate, deleted, scannerId, deviceId, ean, direction,
-                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId);
+                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId, button, articleId);
     }
 
     public Scan withLastModifiedDate(Instant lastModifiedDate) {
         return new Scan(id, version, createdDate, lastModifiedDate, deleted, scannerId, deviceId, ean, direction,
-                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId);
+                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId, button, articleId);
     }
 
     public Scan withResult(ScanStatus status, String result, @Nullable String articleName, @Nullable Long quantity,
                            String message, @Nullable UUID bookingId) {
         return new Scan(id, version, createdDate, lastModifiedDate, deleted, scannerId, deviceId, ean, direction,
-                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId);
+                locationId, seq, bootId, status, result, articleName, quantity, message, bookingId, button, articleId);
     }
 }
