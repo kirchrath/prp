@@ -7,10 +7,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const redirecting = useRef(false);
 
   useEffect(() => {
-    if (!hasAuthParams() && !auth.isAuthenticated && !auth.activeNavigator && !auth.isLoading && !auth.error
-      && !redirecting.current) {
+    const idle = !auth.isAuthenticated && !auth.activeNavigator && !auth.isLoading && !auth.error;
+    if (idle && !hasAuthParams() && !redirecting.current) {
       redirecting.current = true;
-      void auth.signinRedirect({ url_state: window.location.pathname });
+      void auth.signinRedirect();
     }
   }, [auth]);
 
@@ -32,13 +32,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** Name and logout button for the navbar; renders nothing without OIDC. */
+/** Name and logout button for the navbar. */
 export function UserMenu() {
   const auth = useAuth();
-  const name = auth.user?.profile.preferred_username ?? auth.user?.profile.name;
   return (
     <div className="navbar-item">
-      <span className="mr-3 has-text-grey">{name}</span>
+      <span className="mr-3 has-text-grey">{auth.user?.profile.preferred_username}</span>
       <button className="button is-small is-light" onClick={() => void auth.signoutRedirect()}>
         Abmelden
       </button>

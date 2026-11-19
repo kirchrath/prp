@@ -15,7 +15,7 @@ interface Notifier {
   fail: (error: unknown) => Promise<void>;
 }
 
-const NotificationContext = createContext<Notifier>({ notify: () => {}, fail: async () => {} });
+const NotificationContext = createContext<Notifier | null>(null);
 
 let nextId = 1;
 
@@ -38,10 +38,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   return (
     <NotificationContext.Provider value={{ notify, fail }}>
       {children}
-      <div className="notification-stack">
+      <div className="notification-stack" role="status">
         {notices.map((n) => (
           <div key={n.id} className={`notification is-${n.kind} is-light`}>
-            <button className="delete" aria-label="Schließen" onClick={() => remove(n.id)} />
+            <button className="delete" aria-label="Meldung schließen" onClick={() => remove(n.id)} />
             {n.text}
           </div>
         ))}
@@ -51,5 +51,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 }
 
 export function useNotify(): Notifier {
-  return useContext(NotificationContext);
+  const notifier = useContext(NotificationContext);
+  if (!notifier) {
+    throw new Error('useNotify must be used inside a NotificationProvider');
+  }
+  return notifier;
 }

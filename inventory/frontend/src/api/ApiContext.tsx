@@ -1,45 +1,37 @@
 import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react';
 import { useAuth } from 'react-oidc-context';
-import {
-  ArticlesApi,
-  CategoriesApi,
-  Configuration,
-  DashboardApi,
-  LocationsApi,
-  MovementsApi,
-  ScannersApi,
-  ShoppingListApi,
-  StockApi,
-} from './generated';
+import * as catalog from './catalog';
+import * as device from './device';
+import * as shopping from './shopping';
+import * as stock from './stock';
 
+/** Clients of all backend services; Traefik routes /api/<service> to the service. */
 export interface Api {
-  articles: ArticlesApi;
-  categories: CategoriesApi;
-  dashboard: DashboardApi;
-  locations: LocationsApi;
-  movements: MovementsApi;
-  scanners: ScannersApi;
-  shopping: ShoppingListApi;
-  stock: StockApi;
+  articles: catalog.ArticlesApi;
+  categories: catalog.CategoriesApi;
+  locations: stock.LocationsApi;
+  stock: stock.StockApi;
+  bookings: stock.BookingsApi;
+  movements: stock.MovementsApi;
+  shopping: shopping.ShoppingItemsApi;
+  scanners: device.ScannersApi;
 }
 
-const ApiContext = createContext<Api | null>(null);
+export const ApiContext = createContext<Api | null>(null);
 
-function createApi(token: () => string | undefined): Api {
-  const configuration = new Configuration({
-    // relative URLs: nginx (or the Vite dev server) proxies /api to the backend
-    basePath: '',
-    accessToken: async () => token() ?? '',
-  });
+export function createApi(token: () => string | undefined): Api {
+  const params = { basePath: '', accessToken: async () => token() ?? '' };
+  const catalogConfig = new catalog.Configuration(params);
+  const stockConfig = new stock.Configuration(params);
   return {
-    articles: new ArticlesApi(configuration),
-    categories: new CategoriesApi(configuration),
-    dashboard: new DashboardApi(configuration),
-    locations: new LocationsApi(configuration),
-    movements: new MovementsApi(configuration),
-    scanners: new ScannersApi(configuration),
-    shopping: new ShoppingListApi(configuration),
-    stock: new StockApi(configuration),
+    articles: new catalog.ArticlesApi(catalogConfig),
+    categories: new catalog.CategoriesApi(catalogConfig),
+    locations: new stock.LocationsApi(stockConfig),
+    stock: new stock.StockApi(stockConfig),
+    bookings: new stock.BookingsApi(stockConfig),
+    movements: new stock.MovementsApi(stockConfig),
+    shopping: new shopping.ShoppingItemsApi(new shopping.Configuration(params)),
+    scanners: new device.ScannersApi(new device.Configuration(params)),
   };
 }
 

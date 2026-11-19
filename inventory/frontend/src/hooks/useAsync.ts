@@ -19,28 +19,26 @@ export function useAsync<T>(loader: () => Promise<T>, deps: DependencyList): Asy
   const load = useCallback(loader, deps);
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
     setLoading(true);
-    load()
-      .then((result) => {
-        if (!cancelled) {
+    load().then(
+      (result) => {
+        if (active) {
           setData(result);
           setError(undefined);
-        }
-      })
-      .catch(async (e) => {
-        const message = await errorMessage(e);
-        if (!cancelled) {
-          setError(message);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
           setLoading(false);
         }
-      });
+      },
+      async (e) => {
+        const message = await errorMessage(e);
+        if (active) {
+          setError(message);
+          setLoading(false);
+        }
+      },
+    );
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, [load, version]);
 

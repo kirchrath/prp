@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../api/ApiContext';
 import { formatDateTime } from '../api/dates';
-import type { LocationDto, ScannerDto } from '../api/generated';
+import type { ScannerListDto } from '../api/device';
+import type { LocationListDto } from '../api/stock';
 import { LocationSelect } from '../components/LocationSelect';
 import { useNotify } from '../components/Notifications';
 import { Empty, ErrorBox, Loading } from '../components/Status';
@@ -12,62 +13,72 @@ export function ScannersPage() {
   const scanners = useAsync(() => api.scanners.listScanners(), [api]);
   const locations = useAsync(() => api.locations.listLocations(), [api]);
 
-  // refresh online state periodically
+  // refresh the online state periodically
   useEffect(() => {
     const timer = window.setInterval(scanners.reload, 15_000);
     return () => window.clearInterval(timer);
   }, [scanners.reload]);
 
+  let content;
+  if (scanners.error) {
+    content = <ErrorBox message={scanners.error} onRetry={scanners.reload} />;
+  } else if (!scanners.data) {
+    content = <Loading />;
+  } else if (scanners.data.length === 0) {
+    content = <Empty text="Noch kein Scanner hat sich gemeldet." />;
+  } else {
+    content = (
+      <div className="columns is-multiline">
+        {scanners.data.map((s) => (
+          <div key={s.id} className="column is-6">
+            <ScannerCard scanner={s} locations={locations.data ?? []} onChanged={scanners.reload} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
       <h1 className="title">Scanner</h1>
       <p className="mb-4 has-text-grey">
-        ESP32-Scanner melden sich beim ersten Verbinden mit dem MQTT-Broker automatisch an. Weise ihnen hier einen
-        Lagerort zu – erst dann buchen ihre Scans.
+        ESP32-Scanner melden sich beim ersten Verbinden mit dem MQTT-Broker automatisch an. Weise ihnen hier einen Lagerort
+        zu – erst dann buchen ihre Scans.
       </p>
-      {scanners.error && <ErrorBox message={scanners.error} onRetry={scanners.reload} />}
-      {scanners.loading && !scanners.data ? (
-        <Loading />
-      ) : (scanners.data ?? []).length === 0 ? (
-        <Empty text="Noch kein Scanner hat sich gemeldet." />
-      ) : (
-        <div className="columns is-multiline">
-          {scanners.data!.map((s) => (
-            <div key={s.id} className="column is-6">
-              <ScannerCard scanner={s} locations={locations.data ?? []} onChanged={scanners.reload} />
-            </div>
-          ))}
-        </div>
-      )}
+      {content}
     </>
   );
 }
 
-function ScannerCard({ scanner, locations, onChanged }: { scanner: ScannerDto; locations: LocationDto[]; onChanged: () => void }) {
+function ScannerCard({ scanner, locations, onChanged }: { scanner: ScannerListDto; locations: LocationListDto[]; onChanged: () => void }) {
   const api = useApi();
   const { notify, fail } = useNotify();
   const [name, setName] = useState(scanner.name ?? '');
-  const [locationId, setLocationId] = useState<number | undefined>(scanner.locationId);
+  const [locationId, setLocationId] = useState(scanner.locationId);
   const dirty = name !== (scanner.name ?? '') || locationId !== scanner.locationId;
 
-  const save = async () => {
+  const run = async (action: () => Promise<unknown>, message: string) => {
     try {
-      await api.scanners.updateScanner({ id: scanner.id, scannerUpdateRequest: { name: name || undefined, locationId } });
-      notify('success', 'Scanner gespeichert');
+      await action();
+      notify('success', message);
       onChanged();
     } catch (e) {
       await fail(e);
     }
   };
 
-  const remove = async () => {
+  const save = () =>
+    run(async () => {
+      const { audit, data } = await api.scanners.getScanner({ id: scanner.id });
+      await api.scanners.updateScanner({ id: scanner.id, scannerSaveDto: { audit, data: { ...data, name: name || undefined, locationId } } });
+    }, 'Scanner gespeichert');
+
+  const remove = () => {
     if (!window.confirm(`Scanner ${scanner.deviceId} entfernen? Er meldet sich beim nächsten Verbinden neu an.`)) return;
-    try {
-      await api.scanners.deleteScanner({ id: scanner.id });
-      onChanged();
-    } catch (e) {
-      await fail(e);
-    }
+    void run(async () => {
+      const { audit } = await api.scanners.getScanner({ id: scanner.id });
+      await api.scanners.deleteScanner({ id: scanner.id, version: audit.version });
+    }, 'Scanner entfernt');
   };
 
   return (
@@ -80,28 +91,28 @@ function ScannerCard({ scanner, locations, onChanged }: { scanner: ScannerDto; l
       </header>
       <div className="card-content">
         <p className="is-size-7 has-text-grey mb-3">
-          Geräte-ID <code>{scanner.deviceId}</code>
-          {scanner.firmwareVersion && <> · FW {scanner.firmwareVersion}</>}
-          {scanner.ipAddress && <> · {scanner.ipAddress}</>}
+          Geräte-ID <code>{scanner.deviceId}</code> · FW {scanner.firmwareVersion ?? '–'} · {scanner.ipAddress ?? '–'}
           <br />
           Zuletzt gesehen: {formatDateTime(scanner.lastSeen)}
         </p>
         <div className="field">
-          <label className="label is-small">Name</label>
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={scanner.deviceId} />
+          <label className="label is-small">
+            Name
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={scanner.deviceId} />
+          </label>
         </div>
         <div className="field">
-          <label className="label is-small">Lagerort</label>
+          <p className="label is-small">Lagerort</p>
           <LocationSelect locations={locations} value={locationId} onChange={setLocationId} emptyLabel="– nicht zugeordnet –" />
         </div>
       </div>
       <footer className="card-footer">
-        <a className={`card-footer-item${dirty ? '' : ' has-text-grey-light'}`} onClick={dirty ? save : undefined}>
+        <button className="card-footer-item button is-white" disabled={!dirty} onClick={save}>
           Speichern
-        </a>
-        <a className="card-footer-item has-text-danger" onClick={remove}>
+        </button>
+        <button className="card-footer-item button is-white has-text-danger" onClick={remove}>
           Entfernen
-        </a>
+        </button>
       </footer>
     </div>
   );

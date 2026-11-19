@@ -6,13 +6,12 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 COPY . .
-# the API client in src/api/generated is committed, so no Java is needed here
+# the API clients in src/api/<service> are committed, so no Java is needed here
 RUN npm run build
 
 # ---- runtime --------------------------------------------------------------
 FROM nginx:1.31-alpine
-ENV BACKEND_URL=http://backend:8080 \
-    OIDC_AUTHORITY="" \
+ENV OIDC_AUTHORITY="" \
     OIDC_CLIENT_ID=inventory-frontend
 COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useApi } from '../api/ApiContext';
+import type { ArticleListDto } from '../api/catalog';
 import { fromInputDate } from '../api/dates';
-import type { ArticleDto, LocationDto } from '../api/generated';
+import type { LocationListDto } from '../api/stock';
 import { Field } from '../components/Field';
 import { LocationSelect } from '../components/LocationSelect';
 import { Modal } from '../components/Modal';
@@ -9,67 +10,54 @@ import { useNotify } from '../components/Notifications';
 
 interface Props {
   direction: 'in' | 'out';
-  article: ArticleDto;
-  locations: LocationDto[];
-  initialLocationId?: number;
+  article: ArticleListDto;
+  locations: LocationListDto[];
   onClose: () => void;
   onDone: () => void;
 }
 
 /** Manual booking of several units, optionally with best-before date. */
-export function BookingModal({ direction, article, locations, initialLocationId, onClose, onDone }: Props) {
+export function BookingModal({ direction, article, locations, onClose, onDone }: Props) {
   const api = useApi();
   const { notify, fail } = useNotify();
-  const [locationId, setLocationId] = useState<number | undefined>(initialLocationId);
+  const [locationId, setLocationId] = useState<string>();
   const [quantity, setQuantity] = useState(1);
   const [bestBefore, setBestBefore] = useState('');
-  const [busy, setBusy] = useState(false);
+  const isIn = direction === 'in';
 
   const submit = async () => {
-    if (!locationId) return;
-    setBusy(true);
     try {
-      const bookingRequest = { articleId: article.id, locationId, quantity, bestBefore: fromInputDate(bestBefore) };
-      const result =
-        direction === 'in' ? await api.stock.bookIn({ bookingRequest }) : await api.stock.bookOut({ bookingRequest });
-      notify('success', `${article.name}: ${direction === 'in' ? 'eingelagert' : 'ausgelagert'} – jetzt ${result.quantity} am Ort`);
+      const manualBookingDto = { articleId: article.id, locationId: locationId!, quantity, bestBefore: fromInputDate(bestBefore) };
+      const result = isIn ? await api.stock.bookIn({ manualBookingDto }) : await api.stock.bookOut({ manualBookingDto });
+      notify('success', `${article.name}: ${isIn ? 'eingelagert' : 'ausgelagert'} – jetzt ${result.quantity} am Ort`);
       onDone();
     } catch (e) {
       await fail(e);
-    } finally {
-      setBusy(false);
     }
   };
 
   return (
     <Modal
-      title={`${article.name} ${direction === 'in' ? 'einlagern' : 'auslagern'}`}
+      title={`${article.name} ${isIn ? 'einlagern' : 'auslagern'}`}
       onClose={onClose}
       footer={
         <>
           <button className="button" onClick={onClose}>
             Abbrechen
           </button>
-          <button
-            className={`button ${direction === 'in' ? 'is-success' : 'is-link'}${busy ? ' is-loading' : ''}`}
-            disabled={!locationId || quantity < 1}
-            onClick={submit}
-          >
-            {direction === 'in' ? 'Einlagern' : 'Auslagern'}
+          <button className={`button ${isIn ? 'is-success' : 'is-link'}`} disabled={!locationId || quantity < 1} onClick={submit}>
+            {isIn ? 'Einlagern' : 'Auslagern'}
           </button>
         </>
       }
     >
       <Field label="Lagerort">
-        <LocationSelect locations={locations} value={locationId} onChange={setLocationId} required />
+        <LocationSelect locations={locations} value={locationId} onChange={setLocationId} />
       </Field>
       <Field label="Menge">
         <input className="input" type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
       </Field>
-      <Field
-        label="Mindesthaltbarkeit (optional)"
-        help={direction === 'out' ? 'Leer lassen: ältestes MHD zuerst (FIFO)' : undefined}
-      >
+      <Field label="Mindesthaltbarkeit (optional)" help={isIn ? undefined : 'Leer lassen: ältestes MHD zuerst (FIFO)'}>
         <input className="input" type="date" value={bestBefore} onChange={(e) => setBestBefore(e.target.value)} />
       </Field>
     </Modal>

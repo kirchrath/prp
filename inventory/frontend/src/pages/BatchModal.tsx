@@ -1,30 +1,28 @@
 import { useState } from 'react';
 import { useApi } from '../api/ApiContext';
 import { formatDate, fromInputDate, toInputDate } from '../api/dates';
-import type { StockBatchDto } from '../api/generated';
+import type { StockBatchListDto } from '../api/stock';
 import { Field } from '../components/Field';
 import { Modal } from '../components/Modal';
 import { useNotify } from '../components/Notifications';
 
 /** Assign a best-before date to (part of) a batch or correct its counted quantity. */
-export function BatchModal({ batch, onClose, onDone }: { batch: StockBatchDto; onClose: () => void; onDone: () => void }) {
+export function BatchModal({ batch, onClose, onDone }: { batch: StockBatchListDto; onClose: () => void; onDone: () => void }) {
   const api = useApi();
   const { notify, fail } = useNotify();
   const [mhdQuantity, setMhdQuantity] = useState(batch.quantity);
   const [bestBefore, setBestBefore] = useState(toInputDate(batch.bestBefore));
   const [count, setCount] = useState(batch.quantity);
-  const [busy, setBusy] = useState(false);
 
-  const run = async (action: () => Promise<unknown>, message: string) => {
-    setBusy(true);
+  /** Loads the current audit (optimistic locking) and runs the change. */
+  const run = async (action: (audit: Awaited<ReturnType<typeof api.stock.getBatch>>['audit']) => Promise<unknown>, message: string) => {
     try {
-      await action();
+      const { audit } = await api.stock.getBatch({ id: batch.id });
+      await action(audit);
       notify('success', message);
       onDone();
     } catch (e) {
       await fail(e);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -38,14 +36,8 @@ export function BatchModal({ batch, onClose, onDone }: { batch: StockBatchDto; o
       <div className="columns is-mobile">
         <div className="column is-4">
           <Field label="Menge">
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={batch.quantity}
-              value={mhdQuantity}
-              onChange={(e) => setMhdQuantity(Number(e.target.value))}
-            />
+            <input className="input" type="number" min={1} max={batch.quantity} value={mhdQuantity}
+              onChange={(e) => setMhdQuantity(Number(e.target.value))} />
           </Field>
         </div>
         <div className="column">
@@ -55,17 +47,13 @@ export function BatchModal({ batch, onClose, onDone }: { batch: StockBatchDto; o
         </div>
       </div>
       <button
-        className={`button is-primary mb-5${busy ? ' is-loading' : ''}`}
+        className="button is-primary mb-5"
         disabled={mhdQuantity < 1 || mhdQuantity > batch.quantity}
         onClick={() =>
-          run(
-            () =>
-              api.stock.assignBestBefore({
-                id: batch.id,
-                bestBeforeRequest: { quantity: mhdQuantity, bestBefore: fromInputDate(bestBefore) },
-              }),
-            'MHD gespeichert',
-          )
+          run((audit) => api.stock.assignBestBefore({
+            id: batch.id,
+            batchBestBeforeDto: { audit, quantity: mhdQuantity, bestBefore: fromInputDate(bestBefore) },
+          }), 'MHD gespeichert')
         }
       >
         MHD speichern
@@ -74,14 +62,15 @@ export function BatchModal({ batch, onClose, onDone }: { batch: StockBatchDto; o
       <h3 className="title is-6">Bestand korrigieren (Inventur)</h3>
       <div className="field has-addons">
         <div className="control">
-          <input className="input" type="number" min={0} value={count} onChange={(e) => setCount(Number(e.target.value))} />
+          <input className="input" type="number" min={0} aria-label="Gezählte Menge" value={count}
+            onChange={(e) => setCount(Number(e.target.value))} />
         </div>
         <div className="control">
           <button
-            className={`button is-warning${busy ? ' is-loading' : ''}`}
+            className="button is-warning"
             disabled={count < 0 || count === batch.quantity}
             onClick={() =>
-              run(() => api.stock.correctBatch({ id: batch.id, correctionRequest: { quantity: count } }), 'Bestand korrigiert')
+              run((audit) => api.stock.correctBatch({ id: batch.id, batchCorrectionDto: { audit, quantity: count } }), 'Bestand korrigiert')
             }
           >
             Korrigieren

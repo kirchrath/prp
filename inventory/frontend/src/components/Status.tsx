@@ -6,15 +6,13 @@ export function Loading() {
   );
 }
 
-export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorBox({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="notification is-danger is-light">
       {message}
-      {onRetry && (
-        <button className="button is-small is-danger is-outlined ml-3" onClick={onRetry}>
-          Erneut versuchen
-        </button>
-      )}
+      <button className="button is-small is-danger is-outlined ml-3" onClick={onRetry}>
+        Erneut versuchen
+      </button>
     </div>
   );
 }

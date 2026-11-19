@@ -1,23 +1,20 @@
-import { ResponseError } from './generated';
-
 /** Extracts a readable message from a failed API call (Spring ProblemDetail -> "detail"). */
 export async function errorMessage(error: unknown): Promise<string> {
-  if (error instanceof ResponseError) {
-    try {
-      const body = await error.response.clone().json();
-      if (body?.detail) {
-        return body.detail as string;
-      }
-    } catch {
-      // no JSON body
+  const response = (error as { response?: unknown } | null)?.response;
+  if (response instanceof Response) {
+    const body = await response.clone().json().catch(() => undefined);
+    if (body?.detail) {
+      return body.detail as string;
     }
-    if (error.response.status === 401) {
-      return 'Nicht angemeldet';
-    }
-    if (error.response.status === 403) {
-      return 'Keine Berechtigung';
-    }
-    return `Fehler ${error.response.status}`;
+    return { 401: 'Nicht angemeldet', 403: 'Keine Berechtigung', 409: 'Von jemand anderem geändert – bitte neu laden' }[
+      response.status
+    ] ?? `Fehler ${response.status}`;
   }
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Id of a created resource from the Location header of a 201 response. */
+export function createdId(response: { raw: Response }): string {
+  const location = response.raw.headers.get('Location') ?? '';
+  return location.substring(location.lastIndexOf('/') + 1);
 }
