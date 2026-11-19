@@ -30,7 +30,9 @@ public class CopyListener {
 
     @KafkaListener(topics = {Topics.CATALOG_ARTICLE, Topics.STOCK_BATCH, Topics.RECIPE_SHOPPING_REQUEST})
     void onEvent(String payload, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
-        switch (topic) {
+        // also called for the retry topics (see KafkaRetryConfig)
+        String source = topic.endsWith(Topics.RETRY_SUFFIX) ? topic.substring(0, topic.length() - Topics.RETRY_SUFFIX.length()) : topic;
+        switch (source) {
             case Topics.CATALOG_ARTICLE -> service.applyArticle(json.readValue(payload, ArticleEventDto.class));
             case Topics.STOCK_BATCH -> service.applyBatch(json.readValue(payload, BatchEventDto.class));
             default -> recipes.handle(json.readValue(payload, ShoppingRequestEventDto.class));

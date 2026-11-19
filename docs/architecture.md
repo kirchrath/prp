@@ -48,8 +48,22 @@ Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kaf
 * Publiziert wird **nach dem Commit** (`@TransactionalEventListener(AFTER_COMMIT)`).
 * Aufbewahrung unbegrenzt (`retention.ms = -1`): ein Service kann seine Kopien jederzeit durch Lesen ab
   Offset 0 neu aufbauen. Kopien übernehmen nur neuere Versionen (`audit.version`), sind also idempotent.
-* Jeder Service verarbeitet alle seine Eingangs-Topics in **einem** Listener, also nacheinander – so
-  sehen abhängige Events (z. B. Artikel und wartende Buchung) immer den vorherigen Zustand.
+* Jeder Service verarbeitet alle seine Eingangs-Topics in **einem** Listener, also nacheinander.
+* **Fehler** blockieren nicht: Eine Nachricht, deren Verarbeitung fehlschlägt, wandert in das Retry-Topic des
+  Services (`<topic>_<service>_retry`, z. B. `catalog_article_stock_retry` – nur dieser Service liest es) und
+  wird nach 10 s erneut verarbeitet, insgesamt bis zu 4 Versuche. Die nächsten Nachrichten laufen sofort weiter.
+  Danach landet sie im **Dead-Letter-Topic** `<service>_dead_letter` (unbegrenzt aufbewahrt) und wird als
+  Fehler geloggt (Original-Topic, Key, Fehler). Nicht lesbares JSON geht ohne Wiederholung in den Dead Letter.
+  Dead Letters werden nicht automatisch erneut verarbeitet; zum Nachholen die Nachricht von Hand wieder ins
+  Original-Topic schreiben (z. B. mit `kafka-console-producer.sh`).
+* Weil wiederholte Nachrichten parallel und in anderer Reihenfolge laufen können, ist jedes Speichern über
+  Versionen abgesichert: Kopien übernehmen nur eine **neuere** `audit.version` (ältere werden verworfen),
+  Entitäten haben Optimistic Locking (`@Version`), und eindeutige Schlüssel (Artikel-/Chargen-ID der Kopien,
+  `scan_id` der Buchung, Anfrage-ID der Rezept-Anfragen, ein automatischer Einkaufseintrag je Artikel)
+  verhindern doppelte Anlage. Kollisionen enden als Fehler und laufen über das Retry-Topic erneut – dann greift
+  die Versions- bzw. Duplikatprüfung. Eine Buchung, die dabei auf „Artikel wird angelegt“ hängen bleibt, wird
+  abgeschlossen, sobald der catalog-service den Artikel erneut veröffentlicht (das tut er für jede wartende
+  Buchung).
 
 | Topic | Inhalt | Konsumenten |
 |---|---|---|

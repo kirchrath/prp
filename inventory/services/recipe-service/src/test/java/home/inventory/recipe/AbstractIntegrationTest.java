@@ -27,7 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /** Integration tests with PostgreSQL and Kafka; the AI provider is replaced by {@link FakeChatModel}. */
-@SpringBootTest(properties = "spring.ai.model.chat=none")
+@SpringBootTest(properties = {"spring.ai.model.chat=none", "inventory.kafka.retry.backoff=300ms"})
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, KafkaTestSupport.class, AbstractIntegrationTest.AiTestConfig.class})
 public abstract class AbstractIntegrationTest {

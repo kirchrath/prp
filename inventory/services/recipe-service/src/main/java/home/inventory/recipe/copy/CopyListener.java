@@ -23,7 +23,9 @@ public class CopyListener {
 
     @KafkaListener(topics = {Topics.CATALOG_ARTICLE, Topics.STOCK_BATCH})
     void onEvent(String payload, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
-        if (Topics.CATALOG_ARTICLE.equals(topic)) {
+        // also called for the retry topics (see KafkaRetryConfig)
+        String source = topic.endsWith(Topics.RETRY_SUFFIX) ? topic.substring(0, topic.length() - Topics.RETRY_SUFFIX.length()) : topic;
+        if (Topics.CATALOG_ARTICLE.equals(source)) {
             service.applyArticle(json.readValue(payload, ArticleEventDto.class));
         } else {
             service.applyBatch(json.readValue(payload, BatchEventDto.class));

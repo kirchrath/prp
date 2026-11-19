@@ -17,4 +17,14 @@ public class KafkaConfig {
     NewTopic scanTopic() {
         return TopicBuilder.name(Topics.SCAN).partitions(1).replicas(1).config("retention.ms", "-1").build();
     }
+
+    @Bean
+    NewTopic stockbookingRetryTopic() {
+        return TopicBuilder.name(Topics.STOCK_BOOKING + Topics.RETRY_SUFFIX).partitions(1).replicas(1).build();
+    }
+
+    @Bean
+    NewTopic deadLetterTopic() {
+        return TopicBuilder.name(Topics.DEAD_LETTER).partitions(1).replicas(1).config("retention.ms", "-1").build();
+    }
 }

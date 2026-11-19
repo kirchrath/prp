@@ -12,8 +12,9 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * One listener (one consumer thread) for all incoming topics: a scan and the article it waits for are never
- * processed concurrently, so a pending booking cannot be missed.
+ * One listener (one consumer thread) for all incoming topics, so a scan and the article it waits for are normally
+ * not processed concurrently. Retried messages run in parallel; a booking that stays pending because of that is
+ * completed when the catalog publishes the article again (it does so for every pending booking).
  */
 @Component
 public class EventListener {
@@ -30,7 +31,9 @@ public class EventListener {
 
     @KafkaListener(topics = {Topics.CATALOG_ARTICLE, Topics.DEVICE_SCAN})
     void onEvent(String payload, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
-        if (Topics.CATALOG_ARTICLE.equals(topic)) {
+        // also called for the retry topics (see KafkaRetryConfig)
+        String source = topic.endsWith(Topics.RETRY_SUFFIX) ? topic.substring(0, topic.length() - Topics.RETRY_SUFFIX.length()) : topic;
+        if (Topics.CATALOG_ARTICLE.equals(source)) {
             articles.apply(json.readValue(payload, ArticleEventDto.class));
         } else {
             bookings.handleScan(json.readValue(payload, ScanEventDto.class));

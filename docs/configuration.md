@@ -187,6 +187,8 @@ Jede Einstellung aus `application.yml` oder den Tabellen unten lässt sich so al
 | `spring.kafka.bootstrap-servers` | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka. |
 | `spring.kafka.consumer.group-id` | – | Name des Services | Jeder Service liest jedes Topic vollständig in seiner eigenen Gruppe. |
 | `spring.kafka.consumer.auto-offset-reset` | – | `earliest` | Eine neue Gruppe liest alle Events ab Beginn – so baut ein neuer oder zurückgesetzter Service seine Kopien vollständig auf. |
+| `inventory.kafka.retry.attempts` | `INVENTORY_KAFKA_RETRY_ATTEMPTS` | `4` | Versuche je Nachricht (erster Versuch + Wiederholungen über das Retry-Topic), danach Dead Letter. |
+| `inventory.kafka.retry.backoff` | `INVENTORY_KAFKA_RETRY_BACKOFF` | `10s` | Wartezeit zwischen den Versuchen. |
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `OIDC_ISSUER_URI` | `http://localhost:8180/realms/home` | Erwarteter Token-Aussteller. |
 | `spring.security.oauth2.resourceserver.jwt.jwk-set-uri` | `OIDC_JWK_SET_URI` | `http://localhost:8180/realms/home/protocol/openid-connect/certs` | Woher die Signaturschlüssel kommen. |
 | `spring.threads.virtual.enabled` | – | `true` | Requests laufen auf virtuellen Threads (Java 25). |
@@ -196,6 +198,8 @@ Jede Einstellung aus `application.yml` oder den Tabellen unten lässt sich so al
 
 Fest im Code (nicht konfigurierbar): Topics werden mit 1 Partition, Replikationsfaktor 1 und
 unbegrenzter Aufbewahrung (`retention.ms=-1`) angelegt; Events werden nach dem Datenbank-Commit gesendet.
+Je Service kommen Retry-Topics (`<topic>_<service>_retry`, Standard-Aufbewahrung des Brokers) und ein
+Dead-Letter-Topic (`<service>_dead_letter`, unbegrenzt) hinzu; nicht lesbares JSON wird nicht wiederholt.
 
 Container (`Dockerfile`): `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError` – die JVM
 nutzt bis zu 75 % des Container-Speichers und beendet sich bei Speichermangel (Docker startet sie neu).

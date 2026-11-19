@@ -31,4 +31,19 @@ public class KafkaConfig {
     NewTopic bookingTopic() {
         return forever(Topics.BOOKING);
     }
+
+    @Bean
+    NewTopic catalogarticleRetryTopic() {
+        return TopicBuilder.name(Topics.CATALOG_ARTICLE + Topics.RETRY_SUFFIX).partitions(1).replicas(1).build();
+    }
+
+    @Bean
+    NewTopic devicescanRetryTopic() {
+        return TopicBuilder.name(Topics.DEVICE_SCAN + Topics.RETRY_SUFFIX).partitions(1).replicas(1).build();
+    }
+
+    @Bean
+    NewTopic deadLetterTopic() {
+        return TopicBuilder.name(Topics.DEAD_LETTER).partitions(1).replicas(1).config("retention.ms", "-1").build();
+    }
 }

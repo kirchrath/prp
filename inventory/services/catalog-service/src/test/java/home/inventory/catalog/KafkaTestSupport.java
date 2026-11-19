@@ -46,7 +46,22 @@ public class KafkaTestSupport {
         return found;
     }
 
+    /** Raw records with the given key on the topic (with headers), waiting until at least {@code count} arrived. */
+    public List<ConsumerRecord<String, String>> awaitRecords(String topic, String key, int count) {
+        List<ConsumerRecord<String, String>> found = new ArrayList<>();
+        Awaitility.await().atMost(Duration.ofSeconds(30)).until(() -> {
+            found.clear();
+            found.addAll(records(topic, key));
+            return found.size() >= count;
+        });
+        return found;
+    }
+
     private List<JsonNode> read(String topic, String key) {
+        return records(topic, key).stream().map(r -> json.readTree(r.value())).toList();
+    }
+
+    private List<ConsumerRecord<String, String>> records(String topic, String key) {
         Properties props = new Properties();
         props.putAll(Map.of(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers(),
@@ -54,13 +69,13 @@ public class KafkaTestSupport {
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName()));
-        List<JsonNode> result = new ArrayList<>();
+        List<ConsumerRecord<String, String>> result = new ArrayList<>();
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
             consumer.subscribe(List.of(topic));
             for (int i = 0; i < 5; i++) {
                 for (ConsumerRecord<String, String> r : consumer.poll(Duration.ofMillis(500))) {
                     if (key.equals(r.key())) {
-                        result.add(json.readTree(r.value()));
+                        result.add(r);
                     }
                 }
             }

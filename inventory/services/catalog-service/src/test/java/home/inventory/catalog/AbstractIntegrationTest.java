@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-@SpringBootTest
+@SpringBootTest(properties = "inventory.kafka.retry.backoff=300ms")
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, KafkaTestSupport.class})
 public abstract class AbstractIntegrationTest {
