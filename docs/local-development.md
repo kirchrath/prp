@@ -97,6 +97,7 @@ Produktdatenbanken braucht Internetzugang; ohne ihn dauert sie bis zu ~12 s und 
 
 4. *Scannen* (Handykamera): Funktioniert am PC mit Webcam unter `localhost`. Vom Handy aus braucht der
    Browser HTTPS – dafür Weg B nutzen. Ohne Kamera: EAN ins Feld „EAN manuell eingeben“ tippen.
+   Ein Code im Bild wird einmal gebucht; für ein weiteres Stück den Artikel mindestens 2 s aus dem Bild nehmen.
 
 ### Aufräumen
 

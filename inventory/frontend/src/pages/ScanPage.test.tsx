@@ -91,13 +91,24 @@ describe('ScanPage', () => {
     renderWith(<ScanPage />, api);
     await userEvent.click(screen.getByText('📷 Kamera starten'));
     await waitFor(() => expect(zxing.callback).toBeDefined());
+    let now = 10_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
     act(() => zxing.callback!(undefined));
     act(() => zxing.callback!({ getText: () => '111' }));
-    act(() => zxing.callback!({ getText: () => '111' })); // same code again: ignored
+    act(() => zxing.callback!({ getText: () => '222' })); // another code while booking: ignored
     expect(await screen.findByText('Reis')).toBeInTheDocument();
-    act(() => zxing.callback!({ getText: () => '222' }));
+    // the item stays in view for a long time: seen continuously, never booked again
+    for (let i = 0; i < 10; i++) {
+      now += 1500;
+      act(() => zxing.callback!({ getText: () => '111' }));
+    }
+    expect(api.bookings.createBookingRaw).toHaveBeenCalledTimes(1);
+    // taken away and shown again: next unit
+    now += 2500;
+    act(() => zxing.callback!({ getText: () => '111' }));
     expect(await screen.findByText('Mehl')).toBeInTheDocument();
     expect(api.bookings.createBookingRaw).toHaveBeenCalledTimes(2);
+    vi.mocked(Date.now).mockRestore();
     await userEvent.click(screen.getByText('Kamera stoppen'));
     expect(zxing.stop).toHaveBeenCalled();
   });

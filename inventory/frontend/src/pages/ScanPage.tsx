@@ -10,7 +10,9 @@ import { LocationSelect } from '../components/LocationSelect';
 import { useAsync } from '../hooks/useAsync';
 
 const LOCATION_KEY = 'scan.locationId';
-const SAME_CODE_PAUSE_MS = 2500;
+// the camera reports a visible barcode many times per second: the same code is booked again only after
+// it was out of sight for this long (take the item away and show it again for the next unit)
+const REARM_AFTER_MS = 2000;
 
 const STYLE: Partial<Record<string, string>> = {
   [BookingDataDtoStatusEnum.InOk]: 'is-success',
@@ -71,7 +73,10 @@ export function ScanPage() {
   const [history, setHistory] = useState<Entry[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const lastCode = useRef({ code: '', at: 0 });
+  // last booked camera code and when it was last seen
+  const lastCode = useRef({ code: '', seenAt: 0 });
+  // no camera booking while one is still running
+  const busy = useRef(false);
   // the decode callback is registered once; it reads the latest settings through this ref
   const settings = useRef({ locationId, direction });
   settings.current = { locationId, direction };
@@ -104,9 +109,18 @@ export function ScanPage() {
         if (!result) return;
         const code = result.getText();
         const now = Date.now();
-        if (code === lastCode.current.code && now - lastCode.current.at < SAME_CODE_PAUSE_MS) return;
-        lastCode.current = { code, at: now };
-        void book(code);
+        const last = lastCode.current;
+        if (code === last.code) {
+          const gap = now - last.seenAt;
+          last.seenAt = now;
+          if (gap < REARM_AFTER_MS) return;
+        }
+        if (busy.current) return;
+        lastCode.current = { code, seenAt: now };
+        busy.current = true;
+        void book(code).finally(() => {
+          busy.current = false;
+        });
       })
       .then((c) => {
         controls = c;
@@ -156,6 +170,7 @@ export function ScanPage() {
           {cameraOn ? (
             <>
               <video ref={videoRef} className="scan-video" muted playsInline data-testid="video" />
+              <p className="help">Jeder Artikel wird einmal gebucht. Für ein weiteres Stück den Artikel kurz aus dem Bild nehmen.</p>
               <button className="button is-fullwidth mt-2" onClick={() => setCameraOn(false)}>
                 Kamera stoppen
               </button>
