@@ -1,0 +1,295 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Notification API",
+    "version" : "v1"
+  },
+  "security" : [ {
+    "bearer" : [ ]
+  } ],
+  "paths" : {
+    "/api/notification/settings" : {
+      "get" : {
+        "tags" : [ "NotificationSettings" ],
+        "operationId" : "getNotificationSettings",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "NotificationSettings" ],
+        "operationId" : "updateNotificationSettings",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SettingsSaveDto"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/notification/settings/test" : {
+      "post" : {
+        "tags" : [ "NotificationSettings" ],
+        "summary" : "Sends a test message to the ntfy topic (502 if ntfy cannot be reached)",
+        "operationId" : "sendTestNotification",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/notification/due" : {
+      "get" : {
+        "tags" : [ "Digests" ],
+        "summary" : "What the daily digest contains right now",
+        "operationId" : "getDue",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DueDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notification/digests" : {
+      "get" : {
+        "tags" : [ "Digests" ],
+        "summary" : "Send log of the last 14 days",
+        "operationId" : "listDigests",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DigestListDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "AuditDto" : {
+        "type" : "object",
+        "properties" : {
+          "createdDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastModifiedDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "deleted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdDate", "deleted", "lastModifiedDate", "version" ]
+      },
+      "CategoryThresholdDto" : {
+        "type" : "object",
+        "properties" : {
+          "categoryId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "days" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 365,
+            "minimum" : 0
+          }
+        },
+        "required" : [ "categoryId", "days" ]
+      },
+      "SettingsDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "sendTime" : {
+            "type" : "string",
+            "format" : "time-local"
+          },
+          "defaultDays" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 365,
+            "minimum" : 0
+          },
+          "categoryThresholds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CategoryThresholdDto"
+            }
+          }
+        },
+        "required" : [ "categoryThresholds", "defaultDays", "enabled", "sendTime" ]
+      },
+      "SettingsSaveDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/SettingsDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      },
+      "SettingsDto" : {
+        "type" : "object",
+        "properties" : {
+          "audit" : {
+            "$ref" : "#/components/schemas/AuditDto"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/SettingsDataDto"
+          }
+        },
+        "required" : [ "audit", "data" ]
+      },
+      "DueDto" : {
+        "type" : "object",
+        "properties" : {
+          "expired" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DueItemDto"
+            }
+          },
+          "dueToday" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DueItemDto"
+            }
+          },
+          "dueSoon" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DueItemDto"
+            }
+          },
+          "empty" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "dueSoon", "dueToday", "expired" ]
+      },
+      "DueItemDto" : {
+        "type" : "object",
+        "properties" : {
+          "articleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "brand" : {
+            "type" : "string"
+          },
+          "bestBefore" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "daysLeft" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "articleId", "bestBefore", "daysLeft", "name", "quantity" ]
+      },
+      "DigestListDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "day" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "SENT", "NOTHING_DUE", "FAILED" ]
+          },
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expired" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "dueToday" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "dueSoon" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "lastModifiedDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "attempts", "day", "dueSoon", "dueToday", "expired", "id", "lastModifiedDate", "status" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearer" : {
+        "type" : "http",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
