@@ -7,6 +7,8 @@ target/
 # Node
 node_modules/
 dist/
+coverage/
+*.tsbuildinfo
 # Env / secrets
 .env
 infra/mosquitto/config/passwd
