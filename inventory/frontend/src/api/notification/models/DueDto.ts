@@ -39,10 +39,6 @@ export interface DueDto {
      * 
      */
     dueSoon: Array<DueItemDto>;
-    /**
-     * 
-     */
-    empty?: boolean;
 }
 
 /**
@@ -68,7 +64,6 @@ export function DueDtoFromJSONTyped(json: any, ignoreDiscriminator: boolean): Du
         'expired': ((json['expired'] as Array<any>).map(DueItemDtoFromJSON)),
         'dueToday': ((json['dueToday'] as Array<any>).map(DueItemDtoFromJSON)),
         'dueSoon': ((json['dueSoon'] as Array<any>).map(DueItemDtoFromJSON)),
-        'empty': json['empty'] == null ? undefined : json['empty'],
     };
 }
 
@@ -86,7 +81,6 @@ export function DueDtoToJSONTyped(value?: DueDto | null, ignoreDiscriminator: bo
         'expired': ((value['expired'] as Array<any>).map(DueItemDtoToJSON)),
         'dueToday': ((value['dueToday'] as Array<any>).map(DueItemDtoToJSON)),
         'dueSoon': ((value['dueSoon'] as Array<any>).map(DueItemDtoToJSON)),
-        'empty': value['empty'],
     };
 }
 

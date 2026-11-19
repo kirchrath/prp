@@ -59,7 +59,7 @@ public class DigestService {
         int expired = items.expired().size();
         int today = items.dueToday().size();
         int soon = items.dueSoon().size();
-        if (items.isEmpty()) {
+        if (items.nothingDue()) {
             save(digest.withResult(DigestStatus.NOTHING_DUE, 0, 0, 0, null));
             return;
         }

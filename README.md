@@ -13,6 +13,7 @@ inventory/
   services/shopping-service/   Einkaufsliste (manuell + automatisch aus Mindestbestand)
   services/device-service/     ESP32-Scanner, MQTT ↔ Kafka
   services/recipe-service/     Rezepte, Import mit KI (Spring AI), „Was kann ich kochen?“
+  services/notification-service/  tägliche MHD-Zusammenfassung per ntfy aufs Handy
   frontend/                    React · TypeScript · Vite · Bulma · generierte OpenAPI-Clients
   openapi/<service>.json       OpenAPI-Dokumente (von den Services exportiert)
   docker-compose.yml
@@ -27,9 +28,11 @@ Browser/Handy ──HTTPS──▶ Traefik ─┬─ /api/catalog  ─▶ catalo
                                   ├─ /api/stock    ─▶ stock-service   ─┤   PostgreSQL „inventory“
                                   ├─ /api/shopping ─▶ shopping-service─┤   (ein Schema je Service)
                                   ├─ /api/device   ─▶ device-service  ─┤
-                                  ├─ /api/recipe   ─▶ recipe-service  ─┘ ─▶ KI: Ollama | Anthropic | OpenAI
+                                  ├─ /api/recipe   ─▶ recipe-service  ─┤ ─▶ KI: Ollama | Anthropic | OpenAI
+                                  ├─ /api/notification ─▶ notification-service ─┘ ─▶ ntfy ─▶ Handy
                                   ├─ /             ─▶ frontend (nginx)
-                                  └─ auth.…        ─▶ Keycloak (OIDC/PKCE)
+                                  ├─ auth.…        ─▶ Keycloak (OIDC/PKCE)
+                                  └─ ntfy.…        ─▶ ntfy (Push, Login nötig)
 Services ◀──── Kafka (ein Topic je Aggregat, <service>_<aggregat>) ────▶ Services
 ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 ```
@@ -37,6 +40,7 @@ ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
 Hardware & Einkaufsliste: [docs/scanner-hardware.md](docs/scanner-hardware.md) ·
 Rezepte & KI: [docs/recipes.md](docs/recipes.md) ·
+MHD-Benachrichtigungen: [docs/notifications.md](docs/notifications.md) ·
 **Konfiguration (alle Einstellungen und Standardwerte): [docs/configuration.md](docs/configuration.md)**
 
 ## Schnellstart: lokal ausprobieren
@@ -46,7 +50,7 @@ Ohne Server, DNS, TLS oder Scanner-Hardware – Schritt für Schritt in
 
 ```bash
 docker compose -f dev/docker-compose.yml up -d                       # PostgreSQL, Kafka, Keycloak, Mosquitto
-cd inventory/services/catalog-service && mvn spring-boot:run          # ebenso stock-, shopping-, device-, recipe-service
+cd inventory/services/catalog-service && mvn spring-boot:run          # ebenso stock-, shopping-, device-, recipe-, notification-service
 cd inventory/frontend && npm install && npm run dev                   # http://localhost:5173, Login dev / dev
 dev/simulate-scanner.sh status                                       # Scanner ohne Hardware simulieren
 ```
@@ -98,7 +102,13 @@ docker compose up -d --build
 
 Danach `https://INVENTORY_HOST` öffnen, anmelden, unter *Einstellungen → Lagerorte* die Lagerorte anlegen.
 
-### 4. Scanner
+### 4. MHD-Benachrichtigungen (optional)
+
+`NTFY_HOST` in DNS und `infra/.env`, dann `infra/scripts/ntfy-user.sh service` (Token → `NTFY_TOKEN` in
+`inventory/.env`) und je Person `infra/scripts/ntfy-user.sh member <name>`; die ntfy-App auf dem Handy
+abonniert das Topic `vorrat`. Schritt für Schritt: [docs/notifications.md](docs/notifications.md).
+
+### 5. Scanner
 
 1. Pro Scanner einen MQTT-Benutzer anlegen: `infra/scripts/mqtt-user.sh add scanner-kueche`
 2. Firmware flashen (`scanner/firmware`, siehe [docs/scanner-hardware.md](docs/scanner-hardware.md)).

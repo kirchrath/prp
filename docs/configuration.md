@@ -42,6 +42,8 @@ geänderte Variablen und erstellt die betroffenen Container neu).
 | `KEYCLOAK_ADMIN_PASSWORD` | `change-me` | Passwort dazu. **Vor dem ersten Start ändern.** Spätere Änderungen hier wirken nicht – dann in der Keycloak-Admin-Oberfläche ändern. |
 | `KEYCLOAK_DB_PASSWORD` | `change-me-too` | Passwort der Keycloak-Datenbank (PostgreSQL im infra-Stack). Wird beim ersten Start der Datenbank gesetzt; später nur zusammen mit der Datenbank änderbar. |
 | `MQTT_PORT` | `1883` | Port auf dem Docker-Host, unter dem die Scanner den Broker erreichen. |
+| `NTFY_HOST` | `ntfy.home.arpa` | Hostname des ntfy-Servers (Push-Benachrichtigungen). Die ntfy-App auf dem Handy verbindet sich mit `https://NTFY_HOST`. |
+| `NTFY_UPSTREAM_BASE_URL` | `https://ntfy.sh` (nicht in `.env.example`) | Nur für iOS: Weckanfragen ohne Inhalt gehen an diesen Server. Leer = kein iOS-Push. |
 | `OLLAMA_MODEL` | `qwen3:8b` | Nur mit Profil `ollama`: Modell, das der Dienst `ollama-pull` einmalig herunterlädt. Muss zu `OLLAMA_MODEL` in `inventory/.env` passen. |
 
 ### Dienste des infra-Stacks
@@ -60,7 +62,7 @@ geänderte Variablen und erstellt die betroffenen Container neu).
 
 | Netzwerk | Angelegt von | Wer hängt dran | Zweck |
 |---|---|---|---|
-| `proxy` | infra | Traefik, Keycloak, Ollama, alle Services, Frontend | Routing durch Traefik; Services holen Keycloak-Schlüssel; recipe-service erreicht Ollama. |
+| `proxy` | infra | Traefik, Keycloak, ntfy, Ollama, alle Services, Frontend | Routing durch Traefik; Services holen Keycloak-Schlüssel; recipe-service erreicht Ollama, notification-service erreicht ntfy (`http://ntfy`). |
 | `kafka` | infra | Kafka, alle Services | Nachrichtenbus. |
 | `mqtt` | infra | Mosquitto, device-service | Scanner-Anbindung. |
 | `keycloak` | infra (intern) | Keycloak, keycloak-db | Datenbank von Keycloak. |
@@ -121,6 +123,8 @@ ausgegeben), `delete <name>` entfernt sie; danach lädt Mosquitto die Dateien au
 | `DB_PASSWORD` | `change-me` | PostgreSQL `db`, alle Services | Passwort des Datenbankbenutzers `inventory`. Wird beim ersten Start der Datenbank gesetzt. **Vorher ändern.** |
 | `MQTT_PASSWORD` | `change-me` | device-service | Passwort des MQTT-Benutzers `device-service` (ausgegeben von `mqtt-user.sh add device-service`). |
 | `LOOKUP_ENABLED` | `true` | catalog-service | Unbekannte Barcodes in Open Food Facts, Open Products Facts und Open Beauty Facts nachschlagen. `false`: keine Internetabfragen, unbekannte Barcodes landen direkt in der Inbox. |
+| `NTFY_TOPIC` | `vorrat` | notification-service | ntfy-Topic des Haushalts. |
+| `NTFY_TOKEN` | leer | notification-service | Token des ntfy-Kontos `inventory` (`infra/scripts/ntfy-user.sh service`). Leer = anonym (scheitert am `deny-all` des infra-Stacks). |
 | `AI_PROVIDER` | `ollama` | recipe-service | KI für Rezept-Importe: `ollama`, `anthropic` oder `openai`. Ohne erreichbare KI funktioniert alles außer dem Import. |
 | `OLLAMA_MODEL` | `qwen3:8b` | recipe-service | Ollama-Modell. Muss in Ollama vorhanden sein (siehe `OLLAMA_MODEL` im infra-Stack). Empfehlung: [README → KI-Modell](../README.md#ki-modell-empfehlung). |
 | `OLLAMA_THINK` | `false` | recipe-service | Denkmodus von „Thinking“-Modellen wie qwen3 (`true`, `false`, `low`, `medium`, `high`). `false` ist deutlich schneller und reicht für die Strukturierung. |
@@ -147,7 +151,7 @@ Nur device-service: `MQTT_URL=tcp://mosquitto:1883`, `MQTT_USERNAME=device-servi
 Nur recipe-service: `OLLAMA_BASE_URL=http://ollama:11434`.
 Frontend: `OIDC_AUTHORITY=https://AUTH_HOST/realms/home`, `OIDC_CLIENT_ID=inventory-frontend`.
 
-Traefik-Routen (Labels): `Host(INVENTORY_HOST) && PathPrefix(/api/catalog|stock|shopping|device|recipe)`
+Traefik-Routen (Labels): `Host(INVENTORY_HOST) && PathPrefix(/api/catalog|stock|shopping|device|recipe|notification)`
 gehen an den jeweiligen Service (Port 8080 im Container), alles andere unter `INVENTORY_HOST` an das
 Frontend.
 
@@ -179,7 +183,7 @@ Jede Einstellung aus `application.yml` oder den Tabellen unten lässt sich so al
 
 | Einstellung | Umgebungsvariable | Standard | Bedeutung |
 |---|---|---|---|
-| `server.port` | `SERVER_PORT` | catalog 8081, stock 8082, shopping 8083, device 8084, recipe 8085 (im Container 8080) | HTTP-Port. |
+| `server.port` | `SERVER_PORT` | catalog 8081, stock 8082, shopping 8083, device 8084, recipe 8085, notification 8086 (im Container 8080) | HTTP-Port. |
 | `spring.datasource.url` | `DB_URL` | `jdbc:postgresql://localhost:5432/inventory` | Datenbank. |
 | `spring.datasource.username` / `password` | `DB_USER` / `DB_PASSWORD` | `inventory` / `inventory` | Zugang zur Datenbank. |
 | `spring.datasource.hikari.schema` | – | Name des Services (`catalog`, `stock`, …) | Schema, in dem der Service liest und schreibt. |
@@ -245,6 +249,22 @@ Fest im Code: Standard-Personenzahl 4, wenn ein Import keine nennt; höchstens 1
 Startkategorien (Vorspeise, Hauptgang, Nachtisch, Beilage, Suppe, Salat, Gebäck, Longdrink, Aperitif,
 Cocktail) werden nur angelegt, solange es noch gar keine Kategorie gibt.
 
+### notification-service
+
+| Eigenschaft | Umgebungsvariable | Standard | Bedeutung |
+|---|---|---|---|
+| `inventory.notification.ntfy-url` | `NTFY_URL` | `http://localhost:8090` (Compose: `http://ntfy`) | ntfy-Server. |
+| `inventory.notification.ntfy-topic` | `NTFY_TOPIC` | `vorrat` | Topic des Haushalts. |
+| `inventory.notification.ntfy-token` | `NTFY_TOKEN` | leer | Zugangstoken (nur Schreibrecht auf das Topic). |
+| `inventory.notification.app-url` | `INVENTORY_URL` | `http://localhost:5173` (Compose: `https://INVENTORY_HOST`) | Wird beim Antippen der Nachricht geöffnet (`/benachrichtigungen`). |
+| `inventory.notification.retry-after` | `INVENTORY_NOTIFICATION_RETRYAFTER` | `15m` | Wartezeit, bevor eine fehlgeschlagene Tageszusammenfassung erneut gesendet wird. |
+| `inventory.notification.max-attempts` | `INVENTORY_NOTIFICATION_MAXATTEMPTS` | `4` | Versuche pro Tag. |
+| `inventory.notification.cron` | `INVENTORY_NOTIFICATION_CRON` | `0 * * * * *` | Wie oft geprüft wird, ob die Zusammenfassung fällig ist; `-` schaltet ab. |
+
+Uhrzeit, Schwellen und an/aus werden **in der App** eingestellt (*Einstellungen → Benachrichtigungen*) und
+in der Datenbank gespeichert. Standard nach der Installation: an, 08:00 Uhr, „bald“ = 3 Tage, keine
+Kategorie-Schwellen. Die Uhrzeit gilt in der Zeitzone `TZ`.
+
 ### stock- und shopping-service
 
 Keine eigenen Einstellungen außer den gemeinsamen.
@@ -260,7 +280,7 @@ Keine eigenen Einstellungen außer den gemeinsamen.
 
 Beim Start schreibt der Container daraus `/config.js` (wird nie gecacht). In der Entwicklung gilt
 `frontend/public/config.js` (`http://localhost:8180/realms/home`). Der Vite-Entwicklungsserver
-(`vite.config.ts`) leitet `/api/catalog|stock|shopping|device|recipe` an die Ports 8081–8085 weiter.
+(`vite.config.ts`) leitet `/api/catalog|stock|shopping|device|recipe|notification` an die Ports 8081–8086 weiter.
 Im Browser gespeichert: Anmeldedaten (localStorage, von oidc-client-ts) und der zuletzt gewählte Lagerort
 auf der Scan-Seite.
 

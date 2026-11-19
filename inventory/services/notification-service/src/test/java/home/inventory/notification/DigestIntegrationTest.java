@@ -93,7 +93,7 @@ class DigestIntegrationTest extends AbstractIntegrationTest {
                 org.assertj.core.groups.Tuple.tuple("Milch", 1L),
                 org.assertj.core.groups.Tuple.tuple("Reis", 3L),
                 org.assertj.core.groups.Tuple.tuple("Bohnen", 20L));
-        assertThat(result.isEmpty()).isFalse();
+        assertThat(result.nothingDue()).isFalse();
 
         // article updates: older versions are ignored
         article(milk, 0, false, "Alt", null, dairy);

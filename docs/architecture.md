@@ -9,6 +9,7 @@
 | shopping-service | `/api/shopping` | `shopping` | ShoppingItem | `catalog_article`, `stock_batch` (+ `recipe_shopping_request`) |
 | device-service | `/api/device` | `device` | Scanner, Scan | (reagiert auf `stock_booking`) |
 | recipe-service | `/api/recipe` | `recipe` | RecipeCategory, Recipe (+ Zutaten, Schritte, Tags), ShoppingRequest | `catalog_article`, `stock_batch` |
+| notification-service | `/api/notification` | `notification` | NotificationSettings (+ Schwellen je Kategorie), Digest | `catalog_article`, `stock_batch` |
 
 Jeder Service ist ein eigenständiges Maven-Projekt (Spring Boot 4.1, Java 25, Image auf Basis Amazon
 Corretto). Alle nutzen dieselbe PostgreSQL-Datenbank `inventory`, aber jeweils ein eigenes Schema, das
@@ -68,9 +69,9 @@ Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kaf
 | Topic | Inhalt | Konsumenten |
 |---|---|---|
 | `catalog_category` | Kategorien | – |
-| `catalog_article` | Artikel inkl. EANs, Mindestbestand, Packungsinhalt, `mergedInto` | stock, shopping, recipe |
+| `catalog_article` | Artikel inkl. EANs, Mindestbestand, Packungsinhalt, `mergedInto` | stock, shopping, recipe, notification |
 | `stock_location` | Lagerorte | – |
-| `stock_batch` | Chargen (Artikel × Ort × MHD, Menge) | shopping, recipe |
+| `stock_batch` | Chargen (Artikel × Ort × MHD, Menge) | shopping, recipe, notification |
 | `stock_movement` | Bewegungen (Historie) | – |
 | `stock_booking` | Scan-Buchungen und ihr Ergebnis | catalog, device |
 | `shopping_item` | Einkaufsliste | – |
@@ -79,6 +80,8 @@ Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kaf
 | `recipe_category` | Rezeptkategorien | – |
 | `recipe_recipe` | Rezepte | – |
 | `recipe_shopping_request` | fehlende Zutaten eines Rezepts | shopping |
+| `notification_settings` | Einstellungen der MHD-Benachrichtigung | – |
+| `notification_digest` | tägliche MHD-Zusammenfassung und ihr Versandstatus | – |
 
 ## Barcodes (EAN/GTIN)
 

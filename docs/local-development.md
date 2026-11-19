@@ -40,6 +40,7 @@ docker compose -f dev/docker-compose.yml up -d
 | Kafka | `localhost:9092` | – |
 | Keycloak | http://localhost:8180 | Admin `admin` / `admin`, App-Benutzer **`dev` / `dev`** (wird automatisch angelegt) |
 | Mosquitto | `localhost:1883` | anonym |
+| ntfy | http://localhost:8090 | ohne Login; Nachrichten im Browser unter http://localhost:8090/vorrat |
 
 ### 2. Services starten
 
@@ -52,6 +53,7 @@ cd inventory/services/stock-service    && mvn spring-boot:run   # :8082
 cd inventory/services/shopping-service && mvn spring-boot:run   # :8083
 cd inventory/services/device-service   && mvn spring-boot:run   # :8084
 cd inventory/services/recipe-service   && mvn spring-boot:run   # :8085
+cd inventory/services/notification-service && mvn spring-boot:run   # :8086 (MHD-Benachrichtigungen)
 ```
 
 KI für Rezept-Importe (nur dafür nötig – alles andere funktioniert ohne):
@@ -61,7 +63,7 @@ KI für Rezept-Importe (nur dafür nötig – alles andere funktioniert ohne):
 * oder mit API-Key: `AI_PROVIDER=anthropic ANTHROPIC_API_KEY=… mvn spring-boot:run` (bzw. `openai` /
   `OPENAI_API_KEY`).
 
-Bereit, wenn `curl localhost:8081/actuator/health` (bis 8085) `UP` meldet. Die Swagger-UI liegt unter
+Bereit, wenn `curl localhost:8081/actuator/health` (bis 8086) `UP` meldet. Die Swagger-UI liegt unter
 `http://localhost:808x/swagger-ui.html`.
 
 ### 3. Frontend starten
@@ -73,7 +75,7 @@ npm run dev
 ```
 
 http://localhost:5173 öffnen → Keycloak-Login mit **`dev` / `dev`**. Vite leitet `/api/<service>` an die
-Ports 8081–8085 weiter, genau wie Traefik im Betrieb.
+Ports 8081–8086 weiter, genau wie Traefik im Betrieb.
 
 ### 4. Ausprobieren
 

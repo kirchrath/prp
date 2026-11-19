@@ -207,9 +207,6 @@
             "items" : {
               "$ref" : "#/components/schemas/DueItemDto"
             }
-          },
-          "empty" : {
-            "type" : "boolean"
           }
         },
         "required" : [ "dueSoon", "dueToday", "expired" ]
