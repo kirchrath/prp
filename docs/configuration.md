@@ -309,7 +309,7 @@ Werte liegen im Flash (NVS, Namensraum `scanner`).
 
 | Wert | Standard | Datei | Bedeutung |
 |---|---|---|---|
-| Pins | Scanner RX 16 / TX 17, Sensor A 32, Sensor B 33, LED 25/26/27, Buzzer 14, Taste 0 | `include/pins.h` | Verdrahtung, siehe [scanner-hardware.md](scanner-hardware.md). |
+| Pins | Scanner RX 16 / TX 17, Sensor A 32, Sensor B 33, LED 25/26/27, Buzzer 14, Taste 0; Knopfleiste: Taster 13/16/17/18/19/21/22/23 | `include/pins.h`, `include/button_pins.h` | Verdrahtung, siehe [hardware.md](hardware.md). |
 | `SCANNER_BAUD` | 9600 | `include/pins.h` | Baudrate des GM65 (Werkseinstellung). |
 | Topic-Präfix | `inventory/scanner/` | `src/main.cpp` | Muss zum device-service passen. |
 | Zeitfenster Barcode ↔ Bewegung | 2000 ms | `lib/scanner_logic/src/pairing.h` | Barcode und Bewegung müssen so nah beieinander liegen. |

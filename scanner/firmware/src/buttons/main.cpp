@@ -5,7 +5,7 @@
 // device service, which books it in the stock service and answers with a feedback message (LED + buzzer).
 // Shares WiFi/MQTT setup, feedback, settings and the offline queue with the scanner firmware.
 // Logic (debounce, short/long press): lib/scanner_logic/button_press.h (unit tests: pio test -e native)
-// Protocol: docs/mqtt.md, wiring: docs/scanner-hardware.md
+// Protocol: docs/mqtt.md, wiring: docs/hardware.md
 
 #include <Arduino.h>
 #include <PubSubClient.h>

@@ -1,5 +1,5 @@
 #pragma once
-// Wiring, see docs/scanner-hardware.md
+// Wiring, see docs/hardware.md
 
 // GM65 barcode module (UART2)
 constexpr int PIN_SCANNER_RX = 16;  // ESP32 RX  <- GM65 TX

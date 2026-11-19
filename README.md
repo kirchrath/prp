@@ -18,7 +18,7 @@ inventory/
   openapi/<service>.json       OpenAPI-Dokumente (von den Services exportiert)
   docker-compose.yml
 scanner/firmware/              ESP32-Firmware für Scanner und Knopfleiste (PlatformIO/Arduino) + Logik mit Unity-Tests
-docs/                          Architektur, Events, MQTT-Protokoll, Scanner-Hardware
+docs/                          Architektur, Events, MQTT-Protokoll, Hardware (Scanner, Knopfleiste), Konfiguration
 ```
 
 ## Architektur in Kürze
@@ -38,7 +38,7 @@ ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 ```
 
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
-Hardware & Einkaufsliste (Scanner, Knopfleiste für Gemüse & Co.): [docs/scanner-hardware.md](docs/scanner-hardware.md) ·
+Hardware & Einkaufsliste (Scanner, Knopfleiste für Gemüse & Co.): [docs/hardware.md](docs/hardware.md) ·
 Rezepte & KI: [docs/recipes.md](docs/recipes.md) ·
 MHD-Benachrichtigungen: [docs/notifications.md](docs/notifications.md) ·
 **Konfiguration (alle Einstellungen und Standardwerte): [docs/configuration.md](docs/configuration.md)**
@@ -111,7 +111,7 @@ abonniert das Topic `vorrat`. Schritt für Schritt: [docs/notifications.md](docs
 ### 5. Scanner
 
 1. Pro Scanner einen MQTT-Benutzer anlegen: `infra/scripts/mqtt-user.sh add scanner-kueche`
-2. Firmware flashen (`scanner/firmware`, siehe [docs/scanner-hardware.md](docs/scanner-hardware.md)).
+2. Firmware flashen (`scanner/firmware`, siehe [docs/hardware.md](docs/hardware.md)).
 3. Der Scanner öffnet beim ersten Start das WLAN `Vorrat-<geräte-id>`; dort WLAN, Broker-Adresse,
    Geräte-ID (= MQTT-Benutzer) und Passwort eintragen.
 4. Er erscheint dann unter *Einstellungen → Geräte*; dort einen Lagerort zuweisen.

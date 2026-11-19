@@ -4,7 +4,7 @@
 
 namespace logic {
 
-// Visual/acoustic signals of the scanner (see docs/scanner-hardware.md)
+// Visual/acoustic signals of the scanner (see docs/hardware.md)
 enum class Signal {
   Idle,         // LED off
   Waiting,      // dim white: sent, waiting for the server

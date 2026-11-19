@@ -4,7 +4,7 @@
 // through the scanner. Barcode + direction are published via MQTT to the device service, which
 // forwards the scan to the stock service and answers with a feedback message.
 // The hardware independent logic lives in lib/scanner_logic (unit tests: pio test -e native).
-// Protocol: docs/mqtt.md, wiring: docs/scanner-hardware.md
+// Protocol: docs/mqtt.md, wiring: docs/hardware.md
 
 #include <Arduino.h>
 #include <PubSubClient.h>
