@@ -125,7 +125,7 @@ class ScanFlowTest extends AbstractIntegrationTest {
 
         mvc.perform(get("/api/stock").param("locationId", String.valueOf(keller)).with(USER))
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].locationPath").value(org.hamcrest.Matchers.endsWith(" / Regal 1")));
+                .andExpect(jsonPath("$[0].locationPath").value(org.hamcrest.Matchers.matchesPattern("Keller-.+ / Regal 1")));
 
         mvc.perform(json(put("/api/locations/" + keller), "{\"name\":\"Keller\",\"parentId\":%d}".formatted(regal)))
                 .andExpect(status().isConflict());

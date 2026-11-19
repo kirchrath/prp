@@ -39,7 +39,13 @@ public class MqttScannerGateway implements SmartLifecycle, MqttCallbackExtended 
     private final InventoryProperties.Mqtt properties;
     private final ScannerService scanners;
     private final ObjectMapper json;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    /** Connection handling (retry loop) runs here. */
+    private final ExecutorService connector = Executors.newVirtualThreadPerTaskExecutor();
+    /**
+     * Messages are processed strictly one after another in arrival order: a scan must see the result of the
+     * previous one (e.g. the article created by the first scan of a new barcode).
+     */
+    private final ExecutorService worker = Executors.newSingleThreadExecutor(Thread.ofVirtual().name("mqtt-worker").factory());
     private @Nullable MqttClient client;
     private volatile boolean running;
 
@@ -66,7 +72,7 @@ public class MqttScannerGateway implements SmartLifecycle, MqttCallbackExtended 
             client = c;
             running = true;
             // connect in background so the application also starts while the broker is down
-            executor.submit(() -> connectWithRetry(c, options));
+            connector.submit(() -> connectWithRetry(c, options));
         } catch (MqttException e) {
             throw new IllegalStateException("Cannot create MQTT client for " + properties.url(), e);
         }
@@ -110,7 +116,7 @@ public class MqttScannerGateway implements SmartLifecycle, MqttCallbackExtended 
     public void messageArrived(String topic, MqttMessage message) {
         // never block the Paho callback thread (lookups may call external HTTP services)
         byte[] payload = message.getPayload();
-        executor.submit(() -> dispatch(topic, payload));
+        worker.submit(() -> dispatch(topic, payload));
     }
 
     void dispatch(String topic, byte[] payload) {
@@ -187,7 +193,8 @@ public class MqttScannerGateway implements SmartLifecycle, MqttCallbackExtended 
                 log.debug("Error while closing MQTT client", e);
             }
         }
-        executor.shutdown();
+        connector.shutdownNow();
+        worker.shutdown();
     }
 
     @Override

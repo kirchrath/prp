@@ -66,14 +66,15 @@ public class StorageLocation {
     /** Full path such as "Keller / Regal 2 / oben". */
     public String getPath() {
         List<String> parts = new ArrayList<>();
-        for (StorageLocation l = this; l != null; l = l.parent) {
-            parts.addFirst(l.name);
+        // use getters: the parent may be an uninitialized Hibernate proxy
+        for (StorageLocation l = this; l != null; l = l.getParent()) {
+            parts.addFirst(l.getName());
         }
         return String.join(" / ", parts);
     }
 
     public boolean isSelfOrAncestorOf(StorageLocation other) {
-        for (StorageLocation l = other; l != null; l = l.parent) {
+        for (StorageLocation l = other; l != null; l = l.getParent()) {
             if (l.getId().equals(id)) {
                 return true;
             }
