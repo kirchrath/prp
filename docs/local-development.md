@@ -85,9 +85,12 @@ Ports 8081–8086 weiter, genau wie Traefik im Betrieb.
 
 ```bash
 dev/simulate-scanner.sh status                # Scanner "scanner-dev" meldet sich an
-# im Browser: Einstellungen → Scanner → Lagerort zuweisen → Speichern
+# im Browser: Einstellungen → Geräte → Lagerort zuweisen → Speichern
 dev/simulate-scanner.sh in  4006381333931     # einlagern; Antwort wie sie der ESP32 bekäme
 dev/simulate-scanner.sh out 4006381333931     # auslagern
+DEVICE=knopf-dev dev/simulate-scanner.sh buttons   # Knopfleiste meldet sich an (Lagerort + Artikel in der App zuordnen)
+DEVICE=knopf-dev dev/simulate-scanner.sh press 1   # Taster 1 kurz: 1 Stück einlagern
+DEVICE=knopf-dev dev/simulate-scanner.sh hold 1    # Taster 1 lang: 1 Stück entnehmen
 ```
 
 4. *Rezepte*: ein Rezept anlegen (Zutaten Artikeln zuordnen), dann unter *Kochen* die Personenzahl wählen

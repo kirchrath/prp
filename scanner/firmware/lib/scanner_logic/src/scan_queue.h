@@ -10,6 +10,7 @@ struct QueuedScan {
   std::string ean;
   Direction direction = Direction::None;
   uint32_t seq = 0;
+  int button = 0;  // button box: number of the button (ean unused)
 };
 
 /** Ring buffer for scans made while offline. */

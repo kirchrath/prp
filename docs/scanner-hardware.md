@@ -104,3 +104,61 @@ seriellen Datenstrom, Feedback-Timeout, Offline-Puffer und MQTT-Nachrichten – 
 Beim ersten Start (oder mit gedrückter BOOT-Taste beim Einschalten) öffnet der Scanner den Access Point
 `Vorrat-<geräte-id>`. Dort WLAN, MQTT-Broker (IP des Docker-Hosts), Port, Geräte-ID und das mit
 `infra/scripts/mqtt-user.sh add <geräte-id>` erzeugte Passwort eintragen.
+
+# Knopfleiste (Artikel ohne Barcode)
+
+Für Gemüse, Obst und andere Ware ohne Barcode: eine Leiste mit bis zu **8 Tastern**, z. B. am Gemüsefach.
+Jeder Taster ist in der App einem Artikel zugeordnet (*Einstellungen → Geräte*):
+
+* **kurz drücken** = 1 Stück einlagern (LED grün)
+* **lang drücken** (1 s, ohne loszulassen) = 1 Stück entnehmen (LED blau)
+* rot = Fehler, z. B. nichts mehr da oder Taster keinem Artikel zugeordnet
+
+## Einkaufsliste (pro Knopfleiste)
+
+| Anzahl | Teil | Worauf achten | Richtwert* |
+|---|---|---|---|
+| 1 | **ESP32-Entwicklungsboard**, z. B. ESP32-DevKitC V4 | klassischer ESP32; GPIO 13/16/17/18/19/21/22/23 und 14/25/26/27 herausgeführt | 8–15 € |
+| 1–8 | **Taster**, z. B. 12-mm-Drucktaster oder kleine Arcade-Taster (Schließer) | einfacher Schließer (NO), keine Rastfunktion | 0,50–2 € je Stück |
+| 1 | **RGB-LED 5 mm, gemeinsame Kathode** + 3× **220 Ω** | wie beim Scanner | < 1 € |
+| 1 | **Passiver Buzzer** (z. B. KY-006) | wie beim Scanner | 1–3 € |
+| 1 | **USB-Netzteil 5 V, ≥ 1 A** + Kabel | ohne Scanmodul reicht weniger Strom | 6–10 € |
+| 1 | Gehäuse + Beschriftung | z. B. Aufputzdose oder 3D-Druck; Etiketten oder Schilder mit dem Artikelnamen je Taster | – |
+
+\*Grobe Richtwerte, nicht tagesaktuell geprüft. Insgesamt etwa 20–35 €.
+
+## Verdrahtung
+
+Jeder Taster zwischen GPIO und **GND** (interner Pull-up, kein Widerstand nötig). Nicht bestückte Eingänge
+bleiben offen.
+
+| Taster | GPIO | | Bauteil | GPIO |
+|---|---|---|---|---|
+| 1 | 13 | | LED rot (über 220 Ω) | 25 |
+| 2 | 16 | | LED grün (über 220 Ω) | 26 |
+| 3 | 17 | | LED blau (über 220 Ω) | 27 |
+| 4 | 18 | | LED Kathode | GND |
+| 5 | 19 | | Buzzer + | 14 |
+| 6 | 21 | | Buzzer − | GND |
+| 7 | 22 | | BOOT-Taste (Konfiguration) | 0 (auf dem Board) |
+| 8 | 23 | | | |
+
+LED, Buzzer und BOOT-Taste sind wie beim Scanner verdrahtet; die Signale (Farben, Töne, Offline-Blinken,
+Offline-Puffer) sind dieselben.
+
+## Firmware und Einrichtung
+
+```bash
+cd scanner/firmware
+pio test -e native              # Unity-Tests, inkl. Entprellen und kurz/lang
+pio run -e buttons -t upload    # Knopfleisten-Firmware flashen
+```
+
+1. MQTT-Benutzer anlegen: `infra/scripts/mqtt-user.sh add knopf-gemuese` (die Geräte-ID ist der Benutzername).
+2. Beim ersten Start öffnet die Leiste den Access Point `Vorrat-<geräte-id>` (Standard-ID `knopf-xxxxxx`):
+   WLAN, Broker-Adresse, Geräte-ID und Passwort eintragen. 5 s BOOT gedrückt halten setzt alles zurück.
+3. In der App unter *Einstellungen → Geräte* erscheint sie als **Knopfleiste**: Lagerort wählen und den
+   Tastern 1–8 Artikel zuordnen (Artikel ohne EAN legst du unter *Artikel → + Neuer Artikel* an).
+
+Ohne Hardware ausprobieren: `DEVICE=knopf-dev dev/simulate-scanner.sh buttons`, dann `press 1` (kurz) bzw.
+`hold 1` (lang) – siehe [local-development.md](local-development.md).

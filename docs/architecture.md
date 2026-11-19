@@ -7,7 +7,7 @@
 | catalog-service | `/api/catalog` | `catalog` | Category, Article (+ Barcodes) | – |
 | stock-service | `/api/stock` | `stock` | Location, StockBatch, Movement, Booking | `catalog_article` |
 | shopping-service | `/api/shopping` | `shopping` | ShoppingItem | `catalog_article`, `stock_batch` (+ `recipe_shopping_request`) |
-| device-service | `/api/device` | `device` | Scanner, Scan | (reagiert auf `stock_booking`) |
+| device-service | `/api/device` | `device` | Scanner (Scanner und Knopfleisten, + Taster→Artikel), Scan | (reagiert auf `stock_booking`) |
 | recipe-service | `/api/recipe` | `recipe` | RecipeCategory, Recipe (+ Zutaten, Schritte, Tags), ShoppingRequest | `catalog_article`, `stock_batch` |
 | notification-service | `/api/notification` | `notification` | NotificationSettings (+ Schwellen je Kategorie), Digest | `catalog_article`, `stock_batch` |
 

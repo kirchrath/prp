@@ -1,4 +1,4 @@
-# MQTT-Protokoll Scanner ↔ device-service
+# MQTT-Protokoll Scanner/Knopfleiste ↔ device-service
 
 Präfix: `inventory/scanner/<deviceId>/…` – `deviceId` ist zugleich der MQTT-Benutzername des Scanners
 (per ACL erzwungen). Alle Nutzdaten sind JSON.
@@ -8,8 +8,10 @@ Präfix: `inventory/scanner/<deviceId>/…` – `deviceId` ist zugleich der MQTT
 Beim Verbinden:
 
 ```json
-{"online": true, "fw": "0.1.0", "ip": "192.168.1.50", "rssi": -61, "bootId": "8f3a01c2"}
+{"online": true, "fw": "0.1.0", "ip": "192.168.1.50", "rssi": -61, "bootId": "8f3a01c2", "kind": "scanner"}
 ```
+
+`kind`: `scanner` oder `buttons` (Knopfleiste). Fehlt es (ältere Firmware), gilt das Gerät als Scanner.
 
 Last Will (vom Broker gesendet, wenn der Scanner verschwindet): `{"online": false}`
 
@@ -29,6 +31,18 @@ nächsten Verbinden erneut registriert.
 * Der device-service speichert den Scan und gibt ihn über Kafka (`device_scan`) an den stock-service;
   ohne zugeordneten Lagerort antwortet er sofort mit `NO_LOCATION`.
 
+## `…/button` (Knopfleiste → Backend)
+
+```json
+{"button": 3, "direction": "IN", "seq": 18, "bootId": "8f3a01c2"}
+```
+
+* `button`: 1–8; `direction`: `IN` (kurz gedrückt) oder `OUT` (lang gedrückt)
+* `seq`/`bootId` wie bei `…/scan`
+* Der device-service bucht den Artikel, der dem Taster in der App zugeordnet ist (`device_scan` mit
+  `articleId` statt `ean`). Ohne Lagerort antwortet er mit `NO_LOCATION`, ohne zugeordneten Artikel mit
+  `NO_ARTICLE`.
+
 ## `…/feedback` (Backend → Scanner)
 
 ```json
@@ -47,6 +61,8 @@ nächsten Verbinden erneut registriert.
 | `INVALID_EAN` | Code ist keine gültige EAN (Länge, Ziffern, Prüfziffer); die Firmware prüft das schon selbst und sendet solche Codes gar nicht erst | rot |
 | `NOT_IN_STOCK` | am Lagerort nicht vorhanden | rot |
 | `NO_LOCATION` | Scanner hat keinen Lagerort (oder Lagerort gelöscht) | rot |
+| `NO_ARTICLE` | Knopfleiste: Taster ist keinem Artikel zugeordnet | rot |
+| `ARTICLE_NOT_FOUND` | Knopfleiste: zugeordneter Artikel existiert nicht mehr | rot |
 | `ERROR` | ungültige Nachricht / interner Fehler | rot |
 
 `quantity` ist der neue Bestand des Artikels an diesem Lagerort.

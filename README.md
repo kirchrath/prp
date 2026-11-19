@@ -11,13 +11,13 @@ inventory/
   services/catalog-service/    Artikel, Barcodes, Kategorien, Produktdatenbank-Abfrage
   services/stock-service/      Lagerorte, Bestand (Chargen), Bewegungen, Scan-Buchungen
   services/shopping-service/   Einkaufsliste (manuell + automatisch aus Mindestbestand)
-  services/device-service/     ESP32-Scanner, MQTT ↔ Kafka
+  services/device-service/     ESP32-Scanner und Knopfleisten, MQTT ↔ Kafka
   services/recipe-service/     Rezepte, Import mit KI (Spring AI), „Was kann ich kochen?“
   services/notification-service/  tägliche MHD-Zusammenfassung per ntfy aufs Handy
   frontend/                    React · TypeScript · Vite · Bulma · generierte OpenAPI-Clients
   openapi/<service>.json       OpenAPI-Dokumente (von den Services exportiert)
   docker-compose.yml
-scanner/firmware/              ESP32-Firmware (PlatformIO/Arduino) + Logik-Bibliothek mit Unity-Tests
+scanner/firmware/              ESP32-Firmware für Scanner und Knopfleiste (PlatformIO/Arduino) + Logik mit Unity-Tests
 docs/                          Architektur, Events, MQTT-Protokoll, Scanner-Hardware
 ```
 
@@ -38,7 +38,7 @@ ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 ```
 
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
-Hardware & Einkaufsliste: [docs/scanner-hardware.md](docs/scanner-hardware.md) ·
+Hardware & Einkaufsliste (Scanner, Knopfleiste für Gemüse & Co.): [docs/scanner-hardware.md](docs/scanner-hardware.md) ·
 Rezepte & KI: [docs/recipes.md](docs/recipes.md) ·
 MHD-Benachrichtigungen: [docs/notifications.md](docs/notifications.md) ·
 **Konfiguration (alle Einstellungen und Standardwerte): [docs/configuration.md](docs/configuration.md)**
@@ -114,7 +114,7 @@ abonniert das Topic `vorrat`. Schritt für Schritt: [docs/notifications.md](docs
 2. Firmware flashen (`scanner/firmware`, siehe [docs/scanner-hardware.md](docs/scanner-hardware.md)).
 3. Der Scanner öffnet beim ersten Start das WLAN `Vorrat-<geräte-id>`; dort WLAN, Broker-Adresse,
    Geräte-ID (= MQTT-Benutzer) und Passwort eintragen.
-4. Er erscheint dann unter *Einstellungen → Scanner*; dort einen Lagerort zuweisen.
+4. Er erscheint dann unter *Einstellungen → Geräte*; dort einen Lagerort zuweisen.
 
 ## KI-Modell-Empfehlung
 

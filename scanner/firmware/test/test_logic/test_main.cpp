@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <tuple>
 #include "barcode_reader.h"
+#include "button_press.h"
 #include "direction.h"
 #include "feedback_logic.h"
 #include "gtin.h"
@@ -198,6 +199,55 @@ void test_queue() {
   TEST_ASSERT_TRUE(q.front().direction == Direction::Out);
 }
 
+// ---------------------------------------------------------------- button box
+
+/** Holds the raw state from `from` to `to` (exclusive) and returns the first press reported. */
+static Direction hold(logic::ButtonPress& b, bool pressed, uint32_t from, uint32_t to) {
+  Direction result = Direction::None;
+  for (uint32_t t = from; t < to; t += 5) {
+    Direction d = b.update(pressed, t);
+    if (d != Direction::None && result == Direction::None) result = d;
+  }
+  return result;
+}
+
+void test_button_short_press_is_in() {
+  logic::ButtonPress b;
+  TEST_ASSERT_TRUE(hold(b, false, 0, 100) == Direction::None);
+  TEST_ASSERT_TRUE(hold(b, true, 100, 400) == Direction::None);   // pressed, not yet released
+  TEST_ASSERT_TRUE(hold(b, false, 400, 500) == Direction::In);    // released before 1 s
+  TEST_ASSERT_TRUE(hold(b, false, 500, 2000) == Direction::None); // nothing more
+}
+
+void test_button_long_press_is_out_once() {
+  logic::ButtonPress b;
+  TEST_ASSERT_TRUE(hold(b, true, 0, 900) == Direction::None);
+  TEST_ASSERT_TRUE(hold(b, true, 900, 1100) == Direction::Out);   // fires while still held
+  TEST_ASSERT_TRUE(hold(b, true, 1100, 3000) == Direction::None); // only once
+  TEST_ASSERT_TRUE(hold(b, false, 3000, 3100) == Direction::None); // release after a long press: nothing
+  TEST_ASSERT_TRUE(hold(b, true, 3100, 3300) == Direction::None);  // next press works again
+  TEST_ASSERT_TRUE(hold(b, false, 3300, 3400) == Direction::In);
+}
+
+void test_button_debounce() {
+  logic::ButtonPress b;
+  // bouncing contact: changes faster than the debounce time are ignored
+  for (uint32_t t = 0; t < 200; t += 10) {
+    TEST_ASSERT_TRUE(b.update((t / 10) % 2 == 0, t) == Direction::None);
+  }
+  // a 20 ms glitch is not a press
+  logic::ButtonPress glitch;
+  TEST_ASSERT_TRUE(hold(glitch, true, 0, 20) == Direction::None);
+  TEST_ASSERT_TRUE(hold(glitch, false, 20, 500) == Direction::None);
+}
+
+void test_queue_keeps_button() {
+  ScanQueue q;
+  TEST_ASSERT_TRUE(q.push({"", Direction::Out, 9, 4}));
+  TEST_ASSERT_EQUAL(4, q.front().button);
+  TEST_ASSERT_EQUAL(9, q.front().seq);
+}
+
 // ---------------------------------------------------------------- protocol
 
 void test_protocol() {
@@ -205,8 +255,13 @@ void test_protocol() {
                            scanMessage("4006381333931", Direction::In, 7, "ab12").c_str());
   TEST_ASSERT_EQUAL_STRING("{\"ean\":\"1\",\"direction\":\"OUT\",\"seq\":1,\"bootId\":\"x\"}",
                            scanMessage("1", Direction::Out, 1, "x").c_str());
-  TEST_ASSERT_EQUAL_STRING("{\"online\":true,\"fw\":\"0.2.0\",\"ip\":\"10.0.0.5\",\"rssi\":-60,\"bootId\":\"b\"}",
-                           statusMessage("0.2.0", "10.0.0.5", -60, "b").c_str());
+  TEST_ASSERT_EQUAL_STRING(
+      "{\"online\":true,\"fw\":\"0.2.0\",\"ip\":\"10.0.0.5\",\"rssi\":-60,\"bootId\":\"b\",\"kind\":\"scanner\"}",
+      statusMessage("0.2.0", "10.0.0.5", -60, "b", "scanner").c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"button\":3,\"direction\":\"IN\",\"seq\":4,\"bootId\":\"b\"}",
+                           buttonMessage(3, Direction::In, 4, "b").c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"button\":8,\"direction\":\"OUT\",\"seq\":5,\"bootId\":\"b\"}",
+                           buttonMessage(8, Direction::Out, 5, "b").c_str());
 
   Feedback f;
   const char* ok = "{\"seq\":7,\"result\":\"IN_OK\",\"success\":true,\"article\":\"Reis\",\"quantity\":2}";
@@ -237,6 +292,10 @@ int main() {
   RUN_TEST(test_same_code_is_ignored_for_a_while);
   RUN_TEST(test_reader_frames_codes);
   RUN_TEST(test_gtin);
+  RUN_TEST(test_button_short_press_is_in);
+  RUN_TEST(test_button_long_press_is_out_once);
+  RUN_TEST(test_button_debounce);
+  RUN_TEST(test_queue_keeps_button);
   RUN_TEST(test_signal_for_result);
   RUN_TEST(test_feedback_timer);
   RUN_TEST(test_queue);

@@ -9,8 +9,12 @@ namespace logic {
 /** Payload of {@code <prefix>/<deviceId>/scan}. */
 std::string scanMessage(const std::string& ean, Direction direction, uint32_t seq, const std::string& bootId);
 
-/** Payload of {@code <prefix>/<deviceId>/status}. */
-std::string statusMessage(const char* firmware, const std::string& ip, int rssi, const std::string& bootId);
+/** Payload of {@code <prefix>/<deviceId>/button} (button box, buttons numbered from 1). */
+std::string buttonMessage(int button, Direction direction, uint32_t seq, const std::string& bootId);
+
+/** Payload of {@code <prefix>/<deviceId>/status}; kind is "scanner" or "buttons". */
+std::string statusMessage(const char* firmware, const std::string& ip, int rssi, const std::string& bootId,
+                          const char* kind);
 
 struct Feedback {
   uint32_t seq = 0;

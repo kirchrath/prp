@@ -3,10 +3,14 @@
 
 static const char *NS = "scanner";
 
+#ifndef DEVICE_ID_PREFIX
+#define DEVICE_ID_PREFIX "scanner"
+#endif
+
 static String defaultDeviceId() {
   uint64_t mac = ESP.getEfuseMac();
   char id[24];
-  snprintf(id, sizeof(id), "scanner-%06x", static_cast<uint32_t>(mac >> 24) & 0xFFFFFF);
+  snprintf(id, sizeof(id), DEVICE_ID_PREFIX "-%06x", static_cast<uint32_t>(mac >> 24) & 0xFFFFFF);
   return String(id);
 }
 

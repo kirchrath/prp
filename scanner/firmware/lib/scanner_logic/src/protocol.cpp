@@ -14,13 +14,26 @@ std::string scanMessage(const std::string& ean, Direction direction, uint32_t se
   return out;
 }
 
-std::string statusMessage(const char* firmware, const std::string& ip, int rssi, const std::string& bootId) {
+std::string buttonMessage(int button, Direction direction, uint32_t seq, const std::string& bootId) {
+  JsonDocument doc;
+  doc["button"] = button;
+  doc["direction"] = direction == Direction::In ? "IN" : "OUT";
+  doc["seq"] = seq;
+  doc["bootId"] = bootId;
+  std::string out;
+  serializeJson(doc, out);
+  return out;
+}
+
+std::string statusMessage(const char* firmware, const std::string& ip, int rssi, const std::string& bootId,
+                          const char* kind) {
   JsonDocument doc;
   doc["online"] = true;
   doc["fw"] = firmware;
   doc["ip"] = ip;
   doc["rssi"] = rssi;
   doc["bootId"] = bootId;
+  doc["kind"] = kind;
   std::string out;
   serializeJson(doc, out);
   return out;
