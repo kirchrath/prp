@@ -106,7 +106,7 @@ Rollen gibt es nicht: Jeder Benutzer des Realms darf alles.
 |---|---|---|
 | `mosquitto.conf` | `listener 1883`, `allow_anonymous false`, `password_file`, `acl_file`, Persistenz in `/mosquitto/data` | Nur angemeldete Clients; Nachrichten mit QoS 1 und „retained“ Status überstehen Neustarts. |
 | `passwd` | wird von `scripts/mqtt-user.sh` gepflegt (nicht im Git) | Benutzer und Passwort-Hashes. **Vor dem ersten Start anlegen**, sonst startet Mosquitto nicht. |
-| `acl` | `device-service` darf alles unter `inventory/scanner/#`; jeder andere Benutzer nur `inventory/scanner/<eigener-name>/scan` (schreiben), `/status` (schreiben/lesen), `/feedback` (lesen) | Ein Scanner kann sich nicht als anderer Scanner ausgeben. Der MQTT-Benutzername ist daher die Geräte-ID. |
+| `acl` | `device-service` darf alles unter `inventory/scanner/#`; jedes Gerät nur `inventory/scanner/<eigener-name>/…`: `scan`, `button`, `otastate` (schreiben), `status` (schreiben/lesen), `feedback`, `ota` (lesen) | Ein Gerät kann sich nicht als anderes ausgeben. Der MQTT-Benutzername ist daher die Geräte-ID. Nach einer Änderung: `docker compose restart mosquitto`. |
 
 `scripts/mqtt-user.sh add <name> [passwort]` legt Benutzer an (ohne Passwort wird eines erzeugt und
 ausgegeben), `delete <name>` entfernt sie; danach lädt Mosquitto die Dateien automatisch neu.
