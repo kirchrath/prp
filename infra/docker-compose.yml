@@ -119,6 +119,36 @@ services:
     networks:
       - kafka
 
+  # optional local AI for the recipe service: docker compose --profile ollama up -d
+  ollama:
+    image: ollama/ollama:0.40.16
+    profiles: [ollama]
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      TZ: ${TZ}
+    # with an NVIDIA GPU (nvidia-container-toolkit installed) uncomment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    networks:
+      - proxy   # reachable for the recipe service, not routed by Traefik
+
+  # downloads the model once (several GB) and exits
+  ollama-pull:
+    image: ollama/ollama:0.40.16
+    profiles: [ollama]
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+    entrypoint: ["/bin/sh", "-c", 'until ollama list >/dev/null 2>&1; do sleep 2; done; ollama pull "$$OLLAMA_MODEL"']
+    networks:
+      - proxy
+
 networks:
   # shared with the service stacks (e.g. inventory)
   proxy:
@@ -133,3 +163,4 @@ volumes:
   keycloak-db:
   mosquitto-data:
   kafka-data:
+  ollama:

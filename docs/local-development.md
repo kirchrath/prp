@@ -19,8 +19,9 @@ Einen ESP32 braucht keiner der beiden Wege: `dev/simulate-scanner.sh` spielt ein
 | Node.js | 22 oder neuer | Frontend |
 | mosquitto-clients | beliebig | Scanner-Simulator (`apt install mosquitto-clients`, `brew install mosquitto`) |
 | PlatformIO | 6 | nur für die Firmware |
+| optional: API-Key Anthropic/OpenAI oder ~8 GB RAM für Ollama | – | nur für Rezept-Importe |
 
-Freie Ports: 5432, 9092, 8180, 1883 (Weg A) bzw. 80, 443, 1883 (Weg B). Arbeitsspeicher: rund 3–4 GB
+Freie Ports: 5432, 9092, 8180, 1883, optional 11434 (Weg A) bzw. 80, 443, 1883 (Weg B). Arbeitsspeicher: rund 3–4 GB
 für alles zusammen (gemessen: Services je ~380 MB, Keycloak ~900 MB, Kafka ~350 MB, PostgreSQL ~140 MB).
 
 ## Weg A – Entwicklungsumgebung
@@ -48,9 +49,17 @@ cd inventory/services/catalog-service  && mvn spring-boot:run   # :8081
 cd inventory/services/stock-service    && mvn spring-boot:run   # :8082
 cd inventory/services/shopping-service && mvn spring-boot:run   # :8083
 cd inventory/services/device-service   && mvn spring-boot:run   # :8084
+cd inventory/services/recipe-service   && mvn spring-boot:run   # :8085
 ```
 
-Bereit, wenn `curl localhost:8081/actuator/health` (bis 8084) `UP` meldet. Die Swagger-UI liegt unter
+KI für Rezept-Importe (nur dafür nötig – alles andere funktioniert ohne):
+
+* lokal: `docker compose -f dev/docker-compose.yml --profile ollama up -d` (lädt einmalig `qwen2.5:7b`,
+  ~5 GB), dann recipe-service normal starten (`AI_PROVIDER=ollama` ist Standard);
+* oder mit API-Key: `AI_PROVIDER=anthropic ANTHROPIC_API_KEY=… mvn spring-boot:run` (bzw. `openai` /
+  `OPENAI_API_KEY`).
+
+Bereit, wenn `curl localhost:8081/actuator/health` (bis 8085) `UP` meldet. Die Swagger-UI liegt unter
 `http://localhost:808x/swagger-ui.html`.
 
 ### 3. Frontend starten
@@ -62,7 +71,7 @@ npm run dev
 ```
 
 http://localhost:5173 öffnen → Keycloak-Login mit **`dev` / `dev`**. Vite leitet `/api/<service>` an die
-Ports 8081–8084 weiter, genau wie Traefik im Betrieb.
+Ports 8081–8085 weiter, genau wie Traefik im Betrieb.
 
 ### 4. Ausprobieren
 
@@ -76,6 +85,9 @@ dev/simulate-scanner.sh status                # Scanner "scanner-dev" meldet sic
 dev/simulate-scanner.sh in  4006381333931     # einlagern; Antwort wie sie der ESP32 bekäme
 dev/simulate-scanner.sh out 4006381333931     # auslagern
 ```
+
+4. *Rezepte*: ein Rezept anlegen (Zutaten Artikeln zuordnen), dann unter *Kochen* die Personenzahl wählen
+   und fehlende Zutaten auf die Einkaufsliste setzen – siehe [recipes.md](recipes.md).
 
 Bei einer unbekannten EAN kommt zuerst `PENDING_ARTICLE`, dann `IN_OK_NEW_ARTICLE` (in einer
 Produktdatenbank gefunden) bzw. `IN_OK_UNKNOWN_ARTICLE` (Platzhalter in der Inbox). Die Abfrage der

@@ -6,15 +6,16 @@
 |---|---|---|---|---|
 | catalog-service | `/api/catalog` | `catalog` | Category, Article (+ Barcodes) | – |
 | stock-service | `/api/stock` | `stock` | Location, StockBatch, Movement, Booking | `catalog_article` |
-| shopping-service | `/api/shopping` | `shopping` | ShoppingItem | `catalog_article`, `stock_batch` |
+| shopping-service | `/api/shopping` | `shopping` | ShoppingItem | `catalog_article`, `stock_batch` (+ `recipe_shopping_request`) |
 | device-service | `/api/device` | `device` | Scanner, Scan | (reagiert auf `stock_booking`) |
+| recipe-service | `/api/recipe` | `recipe` | RecipeCategory, Recipe (+ Zutaten, Schritte, Tags), ShoppingRequest | `catalog_article`, `stock_batch` |
 
 Jeder Service ist ein eigenständiges Maven-Projekt (Spring Boot 4.1, Java 25, Image auf Basis Amazon
 Corretto). Alle nutzen dieselbe PostgreSQL-Datenbank `inventory`, aber jeweils ein eigenes Schema, das
 Flyway anlegt und versioniert. Untereinander kommunizieren die Services ausschließlich über Kafka.
 
 Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kafka im KRaft-Modus
-(ein Broker), Mosquitto (MQTT für die Scanner).
+(ein Broker), Mosquitto (MQTT für die Scanner), optional Ollama (lokale KI für Rezept-Importe).
 
 ## Persistenz
 
@@ -53,14 +54,17 @@ Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kaf
 | Topic | Inhalt | Konsumenten |
 |---|---|---|
 | `catalog_category` | Kategorien | – |
-| `catalog_article` | Artikel inkl. EANs, Mindestbestand, `mergedInto` | stock, shopping |
+| `catalog_article` | Artikel inkl. EANs, Mindestbestand, Packungsinhalt, `mergedInto` | stock, shopping, recipe |
 | `stock_location` | Lagerorte | – |
-| `stock_batch` | Chargen (Artikel × Ort × MHD, Menge) | shopping |
+| `stock_batch` | Chargen (Artikel × Ort × MHD, Menge) | shopping, recipe |
 | `stock_movement` | Bewegungen (Historie) | – |
 | `stock_booking` | Scan-Buchungen und ihr Ergebnis | catalog, device |
 | `shopping_item` | Einkaufsliste | – |
 | `device_scanner` | Scanner | – |
 | `device_scan` | Scans der ESP32-Scanner | stock |
+| `recipe_category` | Rezeptkategorien | – |
+| `recipe_recipe` | Rezepte | – |
+| `recipe_shopping_request` | fehlende Zutaten eines Rezepts | shopping |
 
 ## Abläufe
 
@@ -87,6 +91,15 @@ stock: Kopie aktualisiert, wartende Buchungen gebucht ─▶ stock_booking (IN_O
 
 Der Kamera-Scan im Browser (`POST /api/stock/bookings`) nutzt denselben Ablauf; das Frontend fragt die
 Buchung ab, bis sie nicht mehr `PENDING_ARTICLE` ist.
+
+### Rezept: fehlende Zutaten einkaufen
+
+```
+recipe: Zutaten × Personen vs. Packungen × Packungsinhalt ─▶ ShoppingRequest ─▶ recipe_shopping_request
+shopping: Einträge anlegen bzw. offene Einträge erhöhen, Hinweis „für <Rezept>“, jede Anfrage einmal
+```
+
+Details und KI-Anbindung: [recipes.md](recipes.md).
 
 ### Artikel zusammenführen (Inbox)
 

@@ -24,7 +24,8 @@ Werkzeug: Lötkolben (für Stiftleisten/feste Verdrahtung), Seitenschneider, Mul
 ### Docker-Host
 
 Für den Server-Teil (Traefik, Keycloak, Kafka, Mosquitto, PostgreSQL, vier Services, Frontend) wurden
-im Betrieb rund 3 GB RAM gemessen. Empfehlung: **8 GB RAM**, 2+ CPU-Kerne, 20 GB freier Speicher,
+im Betrieb rund 3,5 GB RAM gemessen. Empfehlung: **8 GB RAM** (mit lokaler KI über Ollama **16 GB**, eine
+GPU beschleunigt Importe stark), 2+ CPU-Kerne, 20 GB freier Speicher (+ ~5 GB für das KI-Modell),
 Docker Engine mit Compose v2. Getestet auf x86_64; ARM64 (z. B. Raspberry Pi 5 mit 8 GB) sollte mit
 denselben Images funktionieren, ist aber nicht geprüft.
 

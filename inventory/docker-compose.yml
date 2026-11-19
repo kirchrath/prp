@@ -98,6 +98,26 @@ services:
       - traefik.http.routers.inventory-device.entrypoints=websecure
       - traefik.http.services.inventory-device.loadbalancer.server.port=8080
 
+  recipe-service:
+    <<: *service
+    build: ./services/recipe-service
+    image: home/recipe-service:local
+    environment:
+      <<: *service-env
+      # AI for recipe imports: ollama (local, infra profile "ollama") | anthropic | openai
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-unset}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-unset}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-recipe.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/recipe`)
+      - traefik.http.routers.inventory-recipe.entrypoints=websecure
+      - traefik.http.services.inventory-recipe.loadbalancer.server.port=8080
+
   frontend:
     build: ./frontend
     image: home/inventory-frontend:local
