@@ -5,5 +5,6 @@ import org.jspecify.annotations.Nullable;
 
 /** Entry as shown in the list; {@code label} is the article name or the free text. */
 public record ShoppingItemListDto(UUID id, @Nullable UUID articleId, String label, @Nullable String brand,
-                                  int quantity, boolean automatic, boolean done) {
+                                  int quantity, boolean automatic, boolean done,
+                                  @Nullable String note) {
 }

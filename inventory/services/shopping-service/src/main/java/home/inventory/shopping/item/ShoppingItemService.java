@@ -55,7 +55,7 @@ public class ShoppingItemService {
                     ArticleCopy a = i.articleId() == null ? null : copies.get(i.articleId());
                     String label = a != null ? a.name() : i.text() != null ? i.text() : "Unbekannter Artikel";
                     return new ShoppingItemListDto(i.id(), i.articleId(), label, a == null ? null : a.brand(),
-                            i.quantity(), i.automatic(), i.done());
+                            i.quantity(), i.automatic(), i.done(), i.note());
                 })
                 .toList();
     }
@@ -68,13 +68,14 @@ public class ShoppingItemService {
 
     public UUID create(ShoppingItemSaveDto request) {
         ShoppingItemDataDto data = request.data();
-        return save(ShoppingItem.create(data.articleId(), text(data), data.quantity(), false)).id();
+        return save(ShoppingItem.create(data.articleId(), text(data), data.quantity(), false)
+                .withData(data.articleId(), text(data), data.quantity(), false, blank(data.note()))).id();
     }
 
     public void update(UUID id, ShoppingItemSaveDto request) {
         ShoppingItem current = VersionCheck.require(load(id), request.audit() == null ? null : request.audit().version());
         ShoppingItemDataDto data = request.data();
-        save(current.withData(data.articleId(), text(data), data.quantity(), data.done()));
+        save(current.withData(data.articleId(), text(data), data.quantity(), data.done(), blank(data.note())));
     }
 
     public void delete(UUID id, Long version) {
@@ -97,7 +98,7 @@ public class ShoppingItemService {
         if (missing > 0) {
             ShoppingItem item = existing.orElseGet(() -> ShoppingItem.create(articleId, null, (int) missing, true));
             if (item.id() == null || item.quantity() != missing || item.done()) {
-                save(item.withData(articleId, null, (int) missing, false));
+                save(item.withData(articleId, null, (int) missing, false, item.note()));
             }
         } else {
             existing.ifPresent(i -> save(i.withDeleted(true)));
@@ -112,6 +113,24 @@ public class ShoppingItemService {
         return noText ? null : data.text().trim();
     }
 
+    /**
+     * Adds an entry from a recipe: an open manual entry for the same article (or the same text) is increased
+     * instead of creating a duplicate.
+     */
+    public void addFromRecipe(@Nullable UUID articleId, String text, int quantity, String reason) {
+        repository.findAllByDeletedFalse().stream()
+                .filter(i -> !i.done() && !i.automatic())
+                .filter(i -> articleId != null ? articleId.equals(i.articleId())
+                        : i.articleId() == null && text.equalsIgnoreCase(i.text()))
+                .findFirst()
+                .ifPresentOrElse(i -> save(i.withMore(quantity, reason)),
+                        () -> save(ShoppingItem.create(articleId, text, quantity, false).withMore(0, reason)));
+    }
+
+    private static @Nullable String blank(@Nullable String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
     private ShoppingItem load(UUID id) {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("Eintrag", id));
     }
@@ -124,6 +143,6 @@ public class ShoppingItemService {
     }
 
     private static ShoppingItemDataDto data(ShoppingItem i) {
-        return new ShoppingItemDataDto(i.articleId(), i.text(), i.quantity(), i.automatic(), i.done());
+        return new ShoppingItemDataDto(i.articleId(), i.text(), i.quantity(), i.automatic(), i.done(), i.note());
     }
 }

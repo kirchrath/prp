@@ -186,6 +186,11 @@
           },
           "done" : {
             "type" : "boolean"
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
           }
         },
         "required" : [ "automatic", "done", "quantity" ]
@@ -228,6 +233,9 @@
           },
           "done" : {
             "type" : "boolean"
+          },
+          "note" : {
+            "type" : "string"
           }
         },
         "required" : [ "automatic", "done", "id", "label", "quantity" ]
