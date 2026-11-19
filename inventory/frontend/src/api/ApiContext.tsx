@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useRef, type ReactNode } from 'reac
 import { useAuth } from 'react-oidc-context';
 import * as catalog from './catalog';
 import * as device from './device';
+import * as notification from './notification';
 import * as recipe from './recipe';
 import * as shopping from './shopping';
 import * as stock from './stock';
@@ -20,6 +21,8 @@ export interface Api {
   recipeCategories: recipe.RecipeCategoriesApi;
   recipeImports: recipe.RecipeImportsApi;
   cooking: recipe.CookingApi;
+  notificationSettings: notification.NotificationSettingsApi;
+  digests: notification.DigestsApi;
 }
 
 export const ApiContext = createContext<Api | null>(null);
@@ -29,6 +32,7 @@ export function createApi(token: () => string | undefined): Api {
   const catalogConfig = new catalog.Configuration(params);
   const stockConfig = new stock.Configuration(params);
   const recipeConfig = new recipe.Configuration(params);
+  const notificationConfig = new notification.Configuration(params);
   return {
     articles: new catalog.ArticlesApi(catalogConfig),
     categories: new catalog.CategoriesApi(catalogConfig),
@@ -42,6 +46,8 @@ export function createApi(token: () => string | undefined): Api {
     recipeCategories: new recipe.RecipeCategoriesApi(recipeConfig),
     recipeImports: new recipe.RecipeImportsApi(recipeConfig),
     cooking: new recipe.CookingApi(recipeConfig),
+    notificationSettings: new notification.NotificationSettingsApi(notificationConfig),
+    digests: new notification.DigestsApi(notificationConfig),
   };
 }
 

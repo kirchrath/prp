@@ -91,6 +91,32 @@ services:
     networks:
       - mqtt
 
+  # push notifications (MHD digest); login required, see scripts/ntfy-user.sh
+  ntfy:
+    image: binwiederhier/ntfy:v2.20.0
+    command: serve
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      NTFY_BASE_URL: https://${NTFY_HOST}
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      # nobody may read or write without an account
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_ENABLE_LOGIN: "true"
+      # iOS push only works via the public server (it only receives a poll request, not the content)
+      NTFY_UPSTREAM_BASE_URL: ${NTFY_UPSTREAM_BASE_URL:-https://ntfy.sh}
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ntfy.rule=Host(`${NTFY_HOST}`)
+      - traefik.http.routers.ntfy.entrypoints=websecure
+      - traefik.http.services.ntfy.loadbalancer.server.port=80
+    networks:
+      - proxy   # Traefik and the notification-service (http://ntfy)
+
   kafka:
     image: apache/kafka:4.2.0
     restart: unless-stopped
@@ -163,4 +189,5 @@ volumes:
   keycloak-db:
   mosquitto-data:
   kafka-data:
+  ntfy-data:
   ollama:

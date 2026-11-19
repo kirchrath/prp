@@ -38,6 +38,11 @@ export function fakeApi(): FakeApi {
     },
     recipeImports: { importRecipeFromUrl: ok(), importRecipeFromText: ok() },
     cooking: { listSuggestions: ok([]), createShoppingRequest: ok(), getShoppingRequest: ok() },
+    notificationSettings: {
+      getNotificationSettings: ok({ audit: audit(0), data: { enabled: true, sendTime: '08:00:00', defaultDays: 3, categoryThresholds: [] } }),
+      updateNotificationSettings: ok(), sendTestNotification: ok(),
+    },
+    digests: { getDue: ok({ expired: [], dueToday: [], dueSoon: [] }), listDigests: ok([]) },
   } as unknown as FakeApi;
 }
 

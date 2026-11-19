@@ -11,6 +11,7 @@ import { articleCategories, CategoriesPage, recipeCategories } from './pages/Cat
 import { CookPage } from './pages/CookPage';
 import { RecipesPage } from './pages/RecipesPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { ScannersPage } from './pages/ScannersPage';
 import { Loading } from './components/Status';
 
@@ -33,6 +34,7 @@ const SETTINGS = [
   { to: '/kategorien', label: 'Artikelkategorien' },
   { to: '/rezeptkategorien', label: 'Rezeptkategorien' },
   { to: '/scanner', label: 'Scanner' },
+  { to: '/benachrichtigungen', label: 'Benachrichtigungen' },
 ];
 
 export function App() {
@@ -105,6 +107,7 @@ export function App() {
             <Route path="/kochen" element={<CookPage />} />
             <Route path="/rezepte" element={<RecipesPage />} />
             <Route path="/scanner" element={<ScannersPage />} />
+            <Route path="/benachrichtigungen" element={<NotificationsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

@@ -1,6 +1,6 @@
 # Local development: infrastructure on localhost, services and frontend run from the IDE / Maven / Vite.
 #   docker compose -f dev/docker-compose.yml up -d
-# PostgreSQL :5432 · Kafka :9092 · Keycloak :8180 (user dev / dev) · Mosquitto :1883 (anonymous)
+# PostgreSQL :5432 · Kafka :9092 · Keycloak :8180 (user dev / dev) · Mosquitto :1883 (anonymous) · ntfy :8090
 # optional profile "ollama": Ollama :11434, pulls the model qwen3:8b
 name: inventory-dev
 
@@ -70,6 +70,18 @@ services:
       - source: mosquitto
         target: /mosquitto/config/mosquitto.conf
 
+  # push notifications without login (dev only); web app: http://localhost:8090, topic "vorrat"
+  ntfy:
+    image: binwiederhier/ntfy:v2.20.0
+    command: serve
+    environment:
+      NTFY_BASE_URL: http://localhost:8090
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+    ports:
+      - "8090:80"
+    volumes:
+      - ntfy:/var/lib/ntfy
+
   # optional local AI: docker compose -f dev/docker-compose.yml --profile ollama up -d
   ollama:
     image: ollama/ollama:0.40.16
@@ -97,4 +109,5 @@ configs:
 
 volumes:
   postgres:
+  ntfy:
   ollama:

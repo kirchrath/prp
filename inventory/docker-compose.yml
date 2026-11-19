@@ -119,6 +119,23 @@ services:
       - traefik.http.routers.inventory-recipe.entrypoints=websecure
       - traefik.http.services.inventory-recipe.loadbalancer.server.port=8080
 
+  notification-service:
+    <<: *service
+    build: ./services/notification-service
+    image: home/notification-service:local
+    environment:
+      <<: *service-env
+      # ntfy of the infra stack (network proxy); token from infra/scripts/ntfy-user.sh service
+      NTFY_URL: http://ntfy
+      NTFY_TOPIC: ${NTFY_TOPIC:-vorrat}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      INVENTORY_URL: https://${INVENTORY_HOST}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.inventory-notification.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/notification`)
+      - traefik.http.routers.inventory-notification.entrypoints=websecure
+      - traefik.http.services.inventory-notification.loadbalancer.server.port=8080
+
   frontend:
     build: ./frontend
     image: home/inventory-frontend:local

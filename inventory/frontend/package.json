@@ -8,7 +8,7 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "generate-api": "openapi-generator-cli generate -i ../openapi/catalog.json -g typescript-fetch -o src/api/catalog -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/stock.json -g typescript-fetch -o src/api/stock -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/shopping.json -g typescript-fetch -o src/api/shopping -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/device.json -g typescript-fetch -o src/api/device -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/recipe.json -g typescript-fetch -o src/api/recipe -c openapi-generator.json",
+    "generate-api": "openapi-generator-cli generate -i ../openapi/catalog.json -g typescript-fetch -o src/api/catalog -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/stock.json -g typescript-fetch -o src/api/stock -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/shopping.json -g typescript-fetch -o src/api/shopping -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/device.json -g typescript-fetch -o src/api/device -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/recipe.json -g typescript-fetch -o src/api/recipe -c openapi-generator.json && openapi-generator-cli generate -i ../openapi/notification.json -g typescript-fetch -o src/api/notification -c openapi-generator.json",
     "test": "vitest run --coverage"
   },
   "dependencies": {
