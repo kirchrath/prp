@@ -33,7 +33,7 @@ const SETTINGS = [
   { to: '/lagerorte', label: 'Lagerorte' },
   { to: '/kategorien', label: 'Artikelkategorien' },
   { to: '/rezeptkategorien', label: 'Rezeptkategorien' },
-  { to: '/scanner', label: 'Scanner' },
+  { to: '/geraete', label: 'Geräte' },
   { to: '/benachrichtigungen', label: 'Benachrichtigungen' },
 ];
 
@@ -106,7 +106,8 @@ export function App() {
             <Route path="/rezeptkategorien" element={<CategoriesPage title="Rezeptkategorien" store={recipeCategories} />} />
             <Route path="/kochen" element={<CookPage />} />
             <Route path="/rezepte" element={<RecipesPage />} />
-            <Route path="/scanner" element={<ScannersPage />} />
+            <Route path="/geraete" element={<ScannersPage />} />
+            <Route path="/scanner" element={<Navigate to="/geraete" replace />} />
             <Route path="/benachrichtigungen" element={<NotificationsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

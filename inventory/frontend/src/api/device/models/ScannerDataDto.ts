@@ -13,6 +13,14 @@
  */
 
 import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
+import type { ButtonDto } from './ButtonDto';
+import {
+    ButtonDtoFromJSON,
+    ButtonDtoFromJSONTyped,
+    ButtonDtoToJSON,
+    ButtonDtoToJSONTyped,
+} from './ButtonDto';
+
 /**
  * 
  * @export
@@ -47,13 +55,32 @@ export interface ScannerDataDto {
      * 
      */
     lastSeen?: Date;
+    /**
+     * 
+     */
+    kind?: ScannerDataDtoKindEnum;
+    /**
+     * 
+     */
+    buttons: Array<ButtonDto>;
 }
+
+/**
+* @export
+* @enum {string}
+*/
+export enum ScannerDataDtoKindEnum {
+    Scanner = 'SCANNER',
+    Buttons = 'BUTTONS'
+}
+
 
 /**
  * Check if a given object implements the ScannerDataDto interface.
  */
 export function instanceOfScannerDataDto(value: object): value is ScannerDataDto {
     if (!('online' in value) || value['online'] === undefined) return false;
+    if (!('buttons' in value) || value['buttons'] === undefined) return false;
     return true;
 }
 
@@ -74,6 +101,8 @@ export function ScannerDataDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'firmwareVersion': json['firmwareVersion'] == null ? undefined : json['firmwareVersion'],
         'ipAddress': json['ipAddress'] == null ? undefined : json['ipAddress'],
         'lastSeen': json['lastSeen'] == null ? undefined : (parseDateTime(json['lastSeen'])),
+        'kind': json['kind'] == null ? undefined : json['kind'],
+        'buttons': ((json['buttons'] as Array<any>).map(ButtonDtoFromJSON)),
     };
 }
 
@@ -95,6 +124,8 @@ export function ScannerDataDtoToJSONTyped(value?: ScannerDataDto | null, ignoreD
         'firmwareVersion': value['firmwareVersion'],
         'ipAddress': value['ipAddress'],
         'lastSeen': value['lastSeen'] == null ? value['lastSeen'] : serializeDateTime(value['lastSeen']),
+        'kind': value['kind'],
+        'buttons': ((value['buttons'] as Array<any>).map(ButtonDtoToJSON)),
     };
 }
 

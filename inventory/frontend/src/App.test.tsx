@@ -25,7 +25,7 @@ describe('App', () => {
 
     for (const [link, heading] of [['Bestand', 'Bestand'], ['Artikel', 'Artikel'], ['Einkaufsliste', 'Einkaufsliste'],
       ['Historie', 'Historie'], ['Lagerorte', 'Lagerorte'], ['Artikelkategorien', 'Artikelkategorien'],
-      ['Rezeptkategorien', 'Rezeptkategorien'], ['Kochen', 'Was kann ich kochen?'], ['Rezepte', 'Rezepte'], ['Scanner', 'Scanner']]) {
+      ['Rezeptkategorien', 'Rezeptkategorien'], ['Kochen', 'Was kann ich kochen?'], ['Rezepte', 'Rezepte'], ['Geräte', 'Geräte'], ['Benachrichtigungen', 'Benachrichtigungen']]) {
       await userEvent.click(screen.getByRole('link', { name: link }));
       expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument();
     }

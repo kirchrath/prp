@@ -13,6 +13,14 @@
  */
 
 import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
+import type { ButtonDto } from './ButtonDto';
+import {
+    ButtonDtoFromJSON,
+    ButtonDtoFromJSONTyped,
+    ButtonDtoToJSON,
+    ButtonDtoToJSONTyped,
+} from './ButtonDto';
+
 /**
  * 
  * @export
@@ -51,7 +59,25 @@ export interface ScannerListDto {
      * 
      */
     lastSeen?: Date;
+    /**
+     * 
+     */
+    kind: ScannerListDtoKindEnum;
+    /**
+     * 
+     */
+    buttons: Array<ButtonDto>;
 }
+
+/**
+* @export
+* @enum {string}
+*/
+export enum ScannerListDtoKindEnum {
+    Scanner = 'SCANNER',
+    Buttons = 'BUTTONS'
+}
+
 
 /**
  * Check if a given object implements the ScannerListDto interface.
@@ -60,6 +86,8 @@ export function instanceOfScannerListDto(value: object): value is ScannerListDto
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('deviceId' in value) || value['deviceId'] === undefined) return false;
     if (!('online' in value) || value['online'] === undefined) return false;
+    if (!('kind' in value) || value['kind'] === undefined) return false;
+    if (!('buttons' in value) || value['buttons'] === undefined) return false;
     return true;
 }
 
@@ -81,6 +109,8 @@ export function ScannerListDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'firmwareVersion': json['firmwareVersion'] == null ? undefined : json['firmwareVersion'],
         'ipAddress': json['ipAddress'] == null ? undefined : json['ipAddress'],
         'lastSeen': json['lastSeen'] == null ? undefined : (parseDateTime(json['lastSeen'])),
+        'kind': json['kind'],
+        'buttons': ((json['buttons'] as Array<any>).map(ButtonDtoFromJSON)),
     };
 }
 
@@ -103,6 +133,8 @@ export function ScannerListDtoToJSONTyped(value?: ScannerListDto | null, ignoreD
         'firmwareVersion': value['firmwareVersion'],
         'ipAddress': value['ipAddress'],
         'lastSeen': value['lastSeen'] == null ? value['lastSeen'] : serializeDateTime(value['lastSeen']),
+        'kind': value['kind'],
+        'buttons': ((value['buttons'] as Array<any>).map(ButtonDtoToJSON)),
     };
 }
 

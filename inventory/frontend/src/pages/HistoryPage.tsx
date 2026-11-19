@@ -5,7 +5,7 @@ import { LocationSelect } from '../components/LocationSelect';
 import { Empty, ErrorBox, Loading } from '../components/Status';
 import { useAsync } from '../hooks/useAsync';
 
-const SOURCE_LABEL: Record<string, string> = { SCANNER: 'Scanner', MOBILE: 'Kamera', UI: 'Web', SYSTEM: 'System' };
+const SOURCE_LABEL: Record<string, string> = { SCANNER: 'Scanner', BUTTON: 'Knopfleiste', MOBILE: 'Kamera', UI: 'Web', SYSTEM: 'System' };
 const TYPE_LABEL: Record<string, string> = { IN: 'Eingelagert', OUT: 'Ausgelagert', CORRECTION: 'Korrektur', MERGE: 'Zusammengeführt' };
 
 export function HistoryPage() {

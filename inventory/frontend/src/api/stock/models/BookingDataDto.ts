@@ -22,7 +22,7 @@ export interface BookingDataDto {
     /**
      * 
      */
-    ean: string;
+    ean?: string;
     /**
      * 
      */
@@ -83,6 +83,7 @@ export enum BookingDataDtoDirectionEnum {
 */
 export enum BookingDataDtoSourceEnum {
     Scanner = 'SCANNER',
+    Button = 'BUTTON',
     Mobile = 'MOBILE',
     Ui = 'UI',
     System = 'SYSTEM'
@@ -100,6 +101,7 @@ export enum BookingDataDtoStatusEnum {
     OutOk = 'OUT_OK',
     UnknownEan = 'UNKNOWN_EAN',
     InvalidEan = 'INVALID_EAN',
+    ArticleNotFound = 'ARTICLE_NOT_FOUND',
     NotInStock = 'NOT_IN_STOCK',
     NoLocation = 'NO_LOCATION'
 }
@@ -109,7 +111,6 @@ export enum BookingDataDtoStatusEnum {
  * Check if a given object implements the BookingDataDto interface.
  */
 export function instanceOfBookingDataDto(value: object): value is BookingDataDto {
-    if (!('ean' in value) || value['ean'] === undefined) return false;
     if (!('locationId' in value) || value['locationId'] === undefined) return false;
     if (!('direction' in value) || value['direction'] === undefined) return false;
     if (!('source' in value) || value['source'] === undefined) return false;
@@ -128,7 +129,7 @@ export function BookingDataDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
     }
     return {
         
-        'ean': json['ean'],
+        'ean': json['ean'] == null ? undefined : json['ean'],
         'locationId': json['locationId'],
         'direction': json['direction'],
         'source': json['source'],

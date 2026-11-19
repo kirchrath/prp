@@ -85,6 +85,7 @@ export enum MovementListDtoTypeEnum {
 */
 export enum MovementListDtoSourceEnum {
     Scanner = 'SCANNER',
+    Button = 'BUTTON',
     Mobile = 'MOBILE',
     Ui = 'UI',
     System = 'SYSTEM'
