@@ -32,9 +32,24 @@ ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 ```
 
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
-Hardware: [docs/scanner-hardware.md](docs/scanner-hardware.md)
+Hardware & Einkaufsliste: [docs/scanner-hardware.md](docs/scanner-hardware.md)
+
+## Schnellstart: lokal ausprobieren
+
+Ohne Server, DNS, TLS oder Scanner-Hardware – Schritt für Schritt in
+**[docs/local-development.md](docs/local-development.md)**:
+
+```bash
+docker compose -f dev/docker-compose.yml up -d                       # PostgreSQL, Kafka, Keycloak, Mosquitto
+cd inventory/services/catalog-service && mvn spring-boot:run          # ebenso stock-, shopping-, device-service
+cd inventory/frontend && npm install && npm run dev                   # http://localhost:5173, Login dev / dev
+dev/simulate-scanner.sh status                                       # Scanner ohne Hardware simulieren
+```
 
 ## Inbetriebnahme auf dem Docker-Host
+
+Anforderungen: Docker Engine mit Compose v2 (≥ 2.24), empfohlen 8 GB RAM (gemessen ~3 GB Bedarf),
+Ports 80, 443 und 1883 frei.
 
 ### 1. DNS
 
@@ -86,27 +101,7 @@ Danach `https://INVENTORY_HOST` öffnen, anmelden, unter *Einstellungen → Lage
 
 ## Entwicklung
 
-Voraussetzungen: JDK 25, Maven, Node 22+, Docker (für Testcontainers), PlatformIO.
-
-```bash
-# Services: Tests mit PostgreSQL-, Kafka- (und Mosquitto-)Containern, JaCoCo 100 % Pflicht
-cd inventory/services/catalog-service && mvn verify       # schreibt auch inventory/openapi/catalog.json
-
-# lokal starten (Ports 8081–8084): PostgreSQL, Kafka, Keycloak aus infra/ bzw. lokal
-mvn spring-boot:run
-
-# Frontend
-cd inventory/frontend
-npm install
-npm test                  # Vitest, 100 % Coverage Pflicht
-npm run generate-api      # TS-Clients aus ../openapi/*.json neu erzeugen (benötigt Java)
-npm run dev               # http://localhost:5173, /api/<service> wird auf 8081–8084 weitergeleitet
-
-# Firmware
-cd scanner/firmware
-pio test -e native        # Unity-Tests der Logik
-pio run -e esp32dev
-```
+Lokale Umgebung, Tests und Code-Generierung: [docs/local-development.md](docs/local-development.md).
 
 Die API-Clients unter `frontend/src/api/<service>` sind eingecheckt, damit der Frontend-Container ohne
 Java gebaut werden kann. Ablauf bei API-Änderungen: Service ändern → `mvn verify` → `npm run generate-api`

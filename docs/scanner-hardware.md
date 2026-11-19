@@ -1,15 +1,32 @@
 # ESP32-Scanner
 
-## Teile
+## Einkaufsliste (pro Scanner)
 
-| Teil | Hinweis |
-|---|---|
-| ESP32 DevKit (ESP32-WROOM-32) | jedes Board mit freien GPIOs 14/16/17/25/26/27/32/33 |
-| GM65 / GM805 Barcode-Modul | UART (TTL), 5 V Versorgung |
-| 2 × IR-Sensor | z. B. TCRT5000-Reflexmodul oder E18-D80NK (NPN, open collector); Ausgang LOW = Objekt |
-| RGB-LED, gemeinsame Kathode | + 3 × 220 Ω |
-| Passiver Buzzer | |
-| 5-V-Netzteil (≥ 1 A) | |
+| Anzahl | Teil | Worauf achten | Richtwert* |
+|---|---|---|---|
+| 1 | **ESP32-Entwicklungsboard**, z. B. ESP32-DevKitC V4 (ESP32-WROOM-32/-32E) | klassischer ESP32 (nicht S2/S3/C3 – andere Pins), GPIO 14/16/17/25/26/27/32/33 herausgeführt; USB-Anschluss (Micro-USB oder USB-C) für das passende Kabel merken | 8–15 € |
+| 1 | **Barcode-Scanmodul GM65** (alternativ GM805) | Variante mit **TTL/UART-Kabel** bestellen (nicht nur USB); liest 1D-Codes (EAN-13/EAN-8/UPC) und QR | 20–35 € |
+| 2 | **IR-Näherungsschalter E18-D80NK** | einstellbare Reichweite 3–80 cm, NPN-Ausgang, 5 V. *Nicht* TCRT5000 – der reicht nur wenige Millimeter bis ~2 cm | 4–8 € je Stück |
+| 1 | **RGB-LED 5 mm, gemeinsame Kathode** | „common cathode“, sonst passt die Ansteuerung nicht | < 1 € |
+| 3 | **Widerstand 220 Ω** | für die drei LED-Farben | < 1 € |
+| 1 | **Passiver Buzzer** (z. B. Modul KY-006) | *passiv* – ein aktiver Buzzer kann keine verschiedenen Töne | 1–3 € |
+| 1 | **USB-Netzteil 5 V, ≥ 2 A** + USB-Kabel | GM65 und Sensoren hängen mit am 5-V-Pin des Boards | 8–15 € |
+| 1 | Breadboard + Steckkabel (Jumper, m-w/w-w) | für den Aufbau auf dem Tisch | 5–10 € |
+| 1 | Gehäuse/Halter | Abzweigdose oder 3D-Druck; die Sensoren 5–10 cm links/rechts vom Scanfenster | – |
+| optional | Widerstände 1 kΩ + 2 kΩ | Spannungsteiler, falls dein GM65 5-V-TTL-Pegel ausgibt (siehe unten) | < 1 € |
+| optional | Lochrasterplatine oder ESP32-Schraubklemmen-Adapter | für den dauerhaften Einbau statt Breadboard | 5–10 € |
+
+\*Grobe Richtwerte für Einzelstücke im Elektronikhandel; nicht tagesaktuell geprüft. Insgesamt etwa
+50–90 € pro Scanner, Mehrfachpackungen (Sensoren, LEDs, Widerstände) machen weitere Scanner günstiger.
+
+Werkzeug: Lötkolben (für Stiftleisten/feste Verdrahtung), Seitenschneider, Multimeter hilfreich.
+
+### Docker-Host
+
+Für den Server-Teil (Traefik, Keycloak, Kafka, Mosquitto, PostgreSQL, vier Services, Frontend) wurden
+im Betrieb rund 3 GB RAM gemessen. Empfehlung: **8 GB RAM**, 2+ CPU-Kerne, 20 GB freier Speicher,
+Docker Engine mit Compose v2. Getestet auf x86_64; ARM64 (z. B. Raspberry Pi 5 mit 8 GB) sollte mit
+denselben Images funktionieren, ist aber nicht geprüft.
 
 ## Verdrahtung
 
@@ -24,8 +41,10 @@
 | GPIO14 | Buzzer + |
 | GPIO0 (BOOT-Taste) | 5 s halten: Einstellungen löschen |
 
-Die Sensoreingänge nutzen die internen Pull-ups (3,3 V). E18-D80NK mit 5 V versorgen, der
-Open-Collector-Ausgang zieht nur nach GND und ist damit 3,3-V-sicher. Die GM65-UART arbeitet mit
+Die Sensoreingänge nutzen die internen Pull-ups (3,3 V). E18-D80NK mit 5 V versorgen (braun = 5 V,
+blau = GND, schwarz = Ausgang); der NPN-Ausgang zieht nur nach GND und ist damit 3,3-V-sicher.
+Die Reichweite am Poti so einstellen, dass der Sensor einen vorbeigeführten Artikel erkennt, aber nicht
+das Regal gegenüber. Die GM65-UART arbeitet mit
 3,3-V-Pegeln; falls dein Modul 5-V-Pegel ausgibt, einen Spannungsteiler (z. B. 1 kΩ/2 kΩ) vor GPIO16 setzen.
 
 ## Anordnung und Richtung
