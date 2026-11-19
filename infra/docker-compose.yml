@@ -117,6 +117,27 @@ services:
     networks:
       - proxy   # Traefik and the notification-service (http://ntfy)
 
+  # nightly backup (databases, ntfy accounts, configuration); see docs/backup.md
+  backup:
+    build: ./backup
+    image: home/backup:local
+    restart: unless-stopped
+    env_file: .env   # KEYCLOAK_DB_PASSWORD, BACKUP_*, NTFY_BACKUP_TOKEN, RESTIC_* and provider credentials
+    environment:
+      TZ: ${TZ}
+      INVENTORY_DB_HOST: inventory-db
+      KEYCLOAK_DB_HOST: keycloak-db
+      NTFY_URL: http://ntfy
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backup
+      - .:/source/infra:ro
+      - ../inventory/.env:/source/inventory.env:ro
+      - ntfy-data:/source/ntfy
+    networks:
+      - keycloak   # keycloak-db
+      - backup     # inventory db
+      - proxy      # ntfy
+
   kafka:
     image: apache/kafka:4.2.0
     restart: unless-stopped
@@ -179,6 +200,8 @@ networks:
   # shared with the service stacks (e.g. inventory)
   proxy:
     name: proxy
+  backup:
+    name: backup
   mqtt:
     name: mqtt
   kafka:

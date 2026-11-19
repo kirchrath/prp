@@ -4,6 +4,9 @@
 #                                                 may only write to the topic, prints NTFY_TOKEN
 #   scripts/ntfy-user.sh member <user> [topic]    household member: may only read the topic (ntfy app login),
 #                                                 password is generated
+#   scripts/ntfy-user.sh backup                   account "backup" for backup reports (topic "backup"),
+#                                                 prints NTFY_BACKUP_TOKEN for infra/.env
+#   scripts/ntfy-user.sh grant <user> <topic>     let a member also read another topic (e.g. backup)
 #   scripts/ntfy-user.sh delete <user>
 # topic defaults to "vorrat" (NTFY_TOPIC in inventory/.env)
 set -euo pipefail
@@ -25,7 +28,7 @@ case "$action" in
     ;;
   member)
     user=${2:-}; topic=${3:-vorrat}
-    [[ -z "$user" ]] && { sed -n '2,8p' "$0"; exit 1; }
+    [[ -z "$user" ]] && { sed -n '2,12p' "$0"; exit 1; }
     password=$(head -c 12 /dev/urandom | base64 | tr -d '/+=')
     ntfy -e NTFY_PASSWORD="$password" ntfy ntfy user add --role=user "$user"
     ntfy ntfy ntfy access "$user" "$topic" read-only
@@ -33,10 +36,24 @@ case "$action" in
     echo "Password: $password"
     echo "Topic:    $topic"
     ;;
+  backup)
+    password=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
+    ntfy -e NTFY_PASSWORD="$password" ntfy ntfy user add --role=user backup >/dev/null 2>&1 \
+      || echo "(user backup exists)"
+    ntfy ntfy ntfy access backup backup write-only
+    token=$(ntfy ntfy ntfy token add backup | grep -o 'tk_[A-Za-z0-9]*')
+    echo "Topic:             backup"
+    echo "NTFY_BACKUP_TOKEN=$token   -> infra/.env"
+    ;;
+  grant)
+    user=${2:-}; topic=${3:-}
+    [[ -z "$user" || -z "$topic" ]] && { sed -n '2,12p' "$0"; exit 1; }
+    ntfy ntfy ntfy access "$user" "$topic" read-only
+    ;;
   delete)
     user=${2:-}
-    [[ -z "$user" ]] && { sed -n '2,8p' "$0"; exit 1; }
+    [[ -z "$user" ]] && { sed -n '2,12p' "$0"; exit 1; }
     ntfy ntfy ntfy user del "$user"
     ;;
-  *) sed -n '2,8p' "$0"; exit 1 ;;
+  *) sed -n '2,12p' "$0"; exit 1 ;;
 esac

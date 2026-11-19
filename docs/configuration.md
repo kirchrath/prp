@@ -44,6 +44,12 @@ geänderte Variablen und erstellt die betroffenen Container neu).
 | `MQTT_PORT` | `1883` | Port auf dem Docker-Host, unter dem die Scanner den Broker erreichen. |
 | `NTFY_HOST` | `ntfy.home.arpa` | Hostname des ntfy-Servers (Push-Benachrichtigungen). Die ntfy-App auf dem Handy verbindet sich mit `https://NTFY_HOST`. |
 | `NTFY_UPSTREAM_BASE_URL` | `https://ntfy.sh` (nicht in `.env.example`) | Nur für iOS: Weckanfragen ohne Inhalt gehen an diesen Server. Leer = kein iOS-Push. |
+| `BACKUP_DIR` | `./backups` | Zielverzeichnis der Datensicherung auf dem Host (z. B. NAS-Mount). Siehe [backup.md](backup.md). |
+| `BACKUP_SCHEDULE` | `30 2 * * *` | Zeitplan (cron, Ortszeit `TZ`). |
+| `BACKUP_KEEP_DAILY` / `_WEEKLY` / `_MONTHLY` | `7` / `4` / `6` | Aufbewahrung: tägliche, sonntägliche und monatliche (1.) Stände. |
+| `NTFY_BACKUP_TOKEN` | leer | Token des ntfy-Kontos `backup` (`scripts/ntfy-user.sh backup`); leer = keine Meldungen. |
+| `BACKUP_NOTIFY_SUCCESS` | `weekly` | Erfolgsmeldung: `weekly` (sonntags), `always`, `never`. Fehler werden immer gemeldet. |
+| `RESTIC_REPOSITORY` / `RESTIC_PASSWORD` | leer | Optionale verschlüsselte Kopie außer Haus; plus die Zugangsdaten des Ziels (z. B. `AWS_ACCESS_KEY_ID`). |
 | `OLLAMA_MODEL` | `qwen3:8b` | Nur mit Profil `ollama`: Modell, das der Dienst `ollama-pull` einmalig herunterlädt. Muss zu `OLLAMA_MODEL` in `inventory/.env` passen. |
 
 ### Dienste des infra-Stacks
@@ -65,11 +71,12 @@ geänderte Variablen und erstellt die betroffenen Container neu).
 | `proxy` | infra | Traefik, Keycloak, ntfy, Ollama, alle Services, Frontend | Routing durch Traefik; Services holen Keycloak-Schlüssel; recipe-service erreicht Ollama, notification-service erreicht ntfy (`http://ntfy`). |
 | `kafka` | infra | Kafka, alle Services | Nachrichtenbus. |
 | `mqtt` | infra | Mosquitto, device-service | Scanner-Anbindung. |
-| `keycloak` | infra (intern) | Keycloak, keycloak-db | Datenbank von Keycloak. |
+| `keycloak` | infra (intern) | Keycloak, keycloak-db, backup | Datenbank von Keycloak. |
+| `backup` | infra | backup, PostgreSQL `db` des Inventars (Alias `inventory-db`) | Nächtlicher Dump der Inventar-Datenbank. |
 | `internal` | inventory (intern) | PostgreSQL `db`, alle Services | Datenbank des Inventars. |
 
 Deshalb muss der infra-Stack vor dem Inventar-Stack laufen: Der Inventar-Stack erwartet die Netzwerke
-`proxy`, `kafka` und `mqtt` als „external“.
+`proxy`, `kafka`, `mqtt` und `backup` als „external“.
 
 ### TLS
 

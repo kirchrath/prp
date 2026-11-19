@@ -57,10 +57,11 @@ Mehrfachpackungen; beide Gerätearten nutzen dieselben Board-, LED- und Buzzer-T
 
 ## Docker-Host
 
-Der Server-Teil besteht aus Traefik, Keycloak, Kafka, Mosquitto, ntfy, PostgreSQL, sechs Services und dem
-Frontend. Gemessen wurden rund 3,5 GB RAM, allerdings noch mit vier Services; mit allen sechs ist es
+Der Server-Teil besteht aus Traefik, Keycloak, Kafka, Mosquitto, ntfy, PostgreSQL, dem Backup-Dienst,
+sechs Services und dem Frontend. Gemessen wurden rund 3,5 GB RAM, allerdings noch mit vier Services; mit allen sechs ist es
 etwas mehr (nicht neu gemessen). Empfehlung: **8 GB RAM** (mit lokaler KI über Ollama **16 GB**, eine
-GPU beschleunigt Importe stark), 2+ CPU-Kerne, 20 GB freier Speicher (+ ~5 GB für das KI-Modell),
+GPU beschleunigt Importe stark), 2+ CPU-Kerne, 20 GB freier Speicher (+ ~5 GB für das KI-Modell, + Platz
+für die Datensicherung: 17 Stände, meist nur wenige MB je Stand; besser ein zweiter Datenträger/NAS),
 Docker Engine mit Compose v2. Getestet auf x86_64; ARM64 (z. B. Raspberry Pi 5 mit 8 GB) sollte mit
 denselben Images funktionieren, ist aber nicht geprüft.
 

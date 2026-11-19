@@ -41,6 +41,7 @@ Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](do
 Hardware & Einkaufsliste (Scanner, Knopfleiste für Gemüse & Co.): [docs/hardware.md](docs/hardware.md) ·
 Rezepte & KI: [docs/recipes.md](docs/recipes.md) ·
 MHD-Benachrichtigungen: [docs/notifications.md](docs/notifications.md) ·
+Datensicherung: [docs/backup.md](docs/backup.md) ·
 **Konfiguration (alle Einstellungen und Standardwerte): [docs/configuration.md](docs/configuration.md)**
 
 ## Schnellstart: lokal ausprobieren
@@ -101,6 +102,12 @@ docker compose up -d --build
 ```
 
 Danach `https://INVENTORY_HOST` öffnen, anmelden, unter *Einstellungen → Lagerorte* die Lagerorte anlegen.
+
+### Datensicherung
+
+Läuft automatisch jede Nacht mit dem infra-Stack (Dienst `backup`): Datenbanken, ntfy-Konten und
+Konfiguration nach `BACKUP_DIR`, optional verschlüsselt außer Haus. Einrichtung, Meldungen und Restore:
+[docs/backup.md](docs/backup.md).
 
 ### 4. MHD-Benachrichtigungen (optional)
 

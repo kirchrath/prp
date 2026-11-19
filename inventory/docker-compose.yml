@@ -39,7 +39,9 @@ services:
       interval: 10s
       retries: 10
     networks:
-      - internal
+      internal:
+      backup:   # nightly dump by the backup service of the infra stack
+        aliases: [inventory-db]
 
   catalog-service:
     <<: *service
@@ -153,6 +155,8 @@ services:
 
 networks:
   internal:
+  backup:
+    external: true
   proxy:
     external: true
   kafka:
