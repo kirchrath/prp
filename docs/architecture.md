@@ -1,75 +1,112 @@
 # Architektur
 
-## Komponenten
+## Services
 
-| Komponente | Technik | Aufgabe |
+| Service | Pfad | Schema | Besitzt (Aggregate) | Lokale Kopien aus |
+|---|---|---|---|---|
+| catalog-service | `/api/catalog` | `catalog` | Category, Article (+ Barcodes) | – |
+| stock-service | `/api/stock` | `stock` | Location, StockBatch, Movement, Booking | `catalog_article` |
+| shopping-service | `/api/shopping` | `shopping` | ShoppingItem | `catalog_article`, `stock_batch` |
+| device-service | `/api/device` | `device` | Scanner, Scan | (reagiert auf `stock_booking`) |
+
+Jeder Service ist ein eigenständiges Maven-Projekt (Spring Boot 4.1, Java 25, Image auf Basis Amazon
+Corretto). Alle nutzen dieselbe PostgreSQL-Datenbank `inventory`, aber jeweils ein eigenes Schema, das
+Flyway anlegt und versioniert. Untereinander kommunizieren die Services ausschließlich über Kafka.
+
+Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kafka im KRaft-Modus
+(ein Broker), Mosquitto (MQTT für die Scanner).
+
+## Persistenz
+
+* **Spring Data JDBC** mit unveränderlichen **Records** als Aggregate; kein JPA/JPQL. Abfragen sind
+  abgeleitete Repository-Methoden oder `Criteria`/`Query` über `JdbcAggregateTemplate`.
+* **Primärschlüssel**: UUID, vergeben in einem `BeforeConvertCallback` (Lifecycle-Event).
+* **Auditing** an jedem Aggregat: `createdDate`, `lastModifiedDate` (`@EnableJdbcAuditing`) und
+  `version` (`@Version`, Optimistic Locking).
+* **Soft Delete**: Löschen setzt `deleted = true`; Listen liefern gelöschte Einträge nicht mehr aus, die
+  Daten bleiben erhalten.
+* Kind-Records gehören zum Aggregat (z. B. `article_barcode` am Artikel) und haben keinen eigenen
+  Lebenszyklus.
+
+## API-Konventionen
+
+* Einzelobjekt: `GET /…/{id}` → `{ "audit": AuditDto, "data": XDataDto }` (id steckt im Pfad).
+* Listen: `XListDto` mit `id` und nur den angezeigten Feldern.
+* Anlegen: `POST { "data": … }` → `201 Created`, `Location`-Header mit der neuen id.
+* Ändern: `PUT /…/{id}  { "audit": <unverändert zurückgesendet>, "data": … }` – weicht
+  `audit.version` ab → `409 Conflict`.
+* Löschen: `DELETE /…/{id}?version=<n>` (Soft Delete).
+* OpenAPI code-first (springdoc); Felder sind `required`, außer sie sind mit JSpecify `@Nullable`
+  markiert. Das Frontend generiert daraus je Service einen `typescript-fetch`-Client.
+
+## Events (Kafka)
+
+* Ein Topic je Aggregat-Typ, Name `<service>_<aggregat>` (snake_case), z. B. `catalog_article`.
+* Nur **Speicher-Events**: jedes Speichern publiziert den kompletten Zustand
+  `{ "id", "audit", "data" }` (Key = id), auch Löschungen (`audit.deleted = true`).
+* Publiziert wird **nach dem Commit** (`@TransactionalEventListener(AFTER_COMMIT)`).
+* Aufbewahrung unbegrenzt (`retention.ms = -1`): ein Service kann seine Kopien jederzeit durch Lesen ab
+  Offset 0 neu aufbauen. Kopien übernehmen nur neuere Versionen (`audit.version`), sind also idempotent.
+* Jeder Service verarbeitet alle seine Eingangs-Topics in **einem** Listener, also nacheinander – so
+  sehen abhängige Events (z. B. Artikel und wartende Buchung) immer den vorherigen Zustand.
+
+| Topic | Inhalt | Konsumenten |
 |---|---|---|
-| Traefik | v3 | TLS-Terminierung, Routing per Hostname für alle Dienste |
-| Keycloak | 26 | OIDC-Provider (Realm `home`), zentrale Anmeldung für künftige Dienste |
-| Mosquitto | 2.1 | MQTT-Broker für die ESP32-Scanner, ein Benutzer je Gerät + ACL |
-| inventory-frontend | React/Vite, nginx | SPA; nginx liefert sie aus und leitet `/api` an das Backend weiter |
-| inventory-backend | Spring Boot 4.1, Java 25 | REST-API, Geschäftslogik, MQTT-Anbindung |
-| PostgreSQL | 18 | Datenbank des Inventars (je Dienst eine eigene Instanz) |
+| `catalog_category` | Kategorien | – |
+| `catalog_article` | Artikel inkl. EANs, Mindestbestand, `mergedInto` | stock, shopping |
+| `stock_location` | Lagerorte | – |
+| `stock_batch` | Chargen (Artikel × Ort × MHD, Menge) | shopping |
+| `stock_movement` | Bewegungen (Historie) | – |
+| `stock_booking` | Scan-Buchungen und ihr Ergebnis | catalog, device |
+| `shopping_item` | Einkaufsliste | – |
+| `device_scanner` | Scanner | – |
+| `device_scan` | Scans der ESP32-Scanner | stock |
 
-Netzwerke: `proxy` (Traefik ↔ Dienste, Backend ↔ Keycloak für JWKS), `mqtt` (Broker ↔ Backend),
-dazu je Stack ein internes Netz für die Datenbank.
+## Abläufe
 
-## Authentifizierung
-
-* Das Frontend meldet sich per Authorization Code Flow mit PKCE (public client `inventory-frontend`) an
-  und sendet das Access-Token als Bearer-Token.
-* Das Backend ist OAuth2 Resource Server: Signatur über JWKS (`http://keycloak:8080/...`, intern),
-  `iss` muss `https://AUTH_HOST/realms/home` sein. Benutzername = `preferred_username`
-  (wird in der Historie gespeichert).
-* Jeder angemeldete Benutzer des Realms darf alles (Haushalt). Rollen lassen sich später ergänzen.
-* Scanner authentifizieren sich am Broker, nicht am Backend. Die ACL erzwingt, dass ein Scanner nur unter
-  seiner eigenen Geräte-ID publizieren kann – das Backend vertraut deshalb der ID im Topic.
-
-## Datenmodell
+### Scan am ESP32
 
 ```
-Category 1───* Article *───* Barcode (EAN, eindeutig)
-                  │
-StorageLocation ──┼──* StockBatch (Artikel × Lagerort × MHD|ohne, Menge > 0)
-   (parent_id)    │
-                  └──* StockMovement (+/-Menge, Typ IN/OUT/CORRECTION, Quelle SCANNER/MOBILE/UI,
-                                      Scanner, Benutzer, Zeitpunkt)
-Scanner (device_id, Lagerort, online, last_boot_id/last_seq)
-ShoppingListItem (Artikel oder Freitext, automatic = aus Mindestbestand)
+ESP32 ─mqtt scan─▶ device: Scan{REQUESTED} speichern ─▶ device_scan
+                   stock: Booking buchen ─▶ stock_booking (IN_OK, OUT_OK, NOT_IN_STOCK, …)
+                   device: Scan{PROCESSED} ─▶ mqtt feedback ─▶ ESP32 (LED/Buzzer)
 ```
 
-* **Lagerorte** bilden einen Baum beliebiger Tiefe. Löschen nur, wenn leer und ohne Unterorte;
-  Verschieben unter sich selbst wird verhindert. Bestandsfilter nach Lagerort schließt Unterorte ein.
-* **Bestand** wird in Chargen geführt: gleiche Artikel am gleichen Ort mit gleichem MHD (oder ohne MHD)
-  bilden eine Charge. Scans buchen immer ohne MHD; in der UI kann man Teilmengen einer Charge ein MHD
-  zuweisen. Auslagern ohne MHD-Angabe entnimmt FIFO: frühestes MHD zuerst, Chargen ohne MHD zuletzt.
-* **Unbekannte EAN** beim Einlagern: Abfrage bei Open Food Facts, Open Products Facts, Open Beauty Facts
-  (erster Treffer gewinnt). Ohne Treffer entsteht ein Platzhalter-Artikel mit Status `UNKNOWN` (Inbox),
-  der Bestand wird trotzdem gebucht. In der Inbox kann man ihn ergänzen oder mit einem vorhandenen Artikel
-  zusammenführen (Barcodes, Bestand und Historie wandern mit). Unbekannte EAN beim Auslagern → Fehler.
-* **Einkaufsliste**: Fällt der Gesamtbestand eines Artikels unter `minStock`, wird ein automatischer
-  Eintrag mit der Fehlmenge gepflegt; ist der Mindestbestand wieder erreicht, verschwindet er.
-  Daneben gibt es manuelle Einträge (Freitext).
+Doppelte MQTT-Zustellungen erkennt der device-service an `bootId` + `seq`, doppelte Kafka-Zustellungen
+der stock-service an der Scan-id.
 
-## Scan-Verarbeitung
+### Unbekannter Barcode beim Einlagern
 
 ```
-ESP32 ──scan {ean, direction, seq, bootId}──▶ Mosquitto ──▶ MqttScannerGateway (seriell, in Reihenfolge)
-                                                              │
-                                                    ScannerService: Gerät registrieren, Duplikate
-                                                    (bootId+seq) verwerfen, Lagerort prüfen
-                                                              │
-                                                    ScanService: IN → Artikel finden/anlegen + 1 einlagern
-                                                                 OUT → 1 auslagern (FIFO)
-                                                              │
-ESP32 ◀──feedback {seq, result, article, quantity}────────────┘
+stock: Booking{PENDING_ARTICLE} ─▶ stock_booking ─▶ device: Feedback „warten“
+catalog: Produktdatenbank (Open Food/Products/Beauty Facts) oder Platzhalter in der Inbox
+         ─▶ catalog_article
+stock: Kopie aktualisiert, wartende Buchungen gebucht ─▶ stock_booking (IN_OK_NEW_ARTICLE /
+       IN_OK_UNKNOWN_ARTICLE) ─▶ device ─▶ ESP32
 ```
 
-Der Kamera-Scan im Browser nutzt denselben `ScanService` über `POST /api/stock/scan`.
+Der Kamera-Scan im Browser (`POST /api/stock/bookings`) nutzt denselben Ablauf; das Frontend fragt die
+Buchung ab, bis sie nicht mehr `PENDING_ARTICLE` ist.
 
-## API
+### Artikel zusammenführen (Inbox)
 
-Code-first mit springdoc: Das Backend erzeugt das OpenAPI-Dokument; der Test `OpenApiExportTest`
-schreibt es nach `inventory/openapi/openapi.json`. Felder von Records sind dort `required`, außer sie
-sind mit JSpecify `@Nullable` markiert – so entstehen präzise TypeScript-Typen. Swagger-UI: `/swagger-ui.html`
-(nur direkt am Backend-Container, nicht über nginx erreichbar).
+Der catalog-service markiert den Inbox-Artikel als gelöscht mit `mergedInto` und übernimmt die Barcodes
+in den Zielartikel. Der stock-service verschiebt beim Empfang den Bestand (Bewegungen vom Typ `MERGE`),
+der shopping-service rechnet den Mindestbestand neu.
+
+## Sicherheit
+
+* Frontend: Authorization Code Flow mit PKCE (public client `inventory-frontend`).
+* Jeder Service ist OAuth2 Resource Server; JWKS intern von `http://keycloak:8080`, `iss` muss
+  `https://AUTH_HOST/realms/home` sein. Benutzername (`preferred_username`) wird an Bewegungen und
+  Buchungen gespeichert.
+* Scanner authentifizieren sich am Broker; die ACL erlaubt jedem Scanner nur Topics unter seiner
+  eigenen Geräte-ID.
+
+## Tests
+
+* Services: Testcontainers (PostgreSQL, Kafka, beim device-service zusätzlich Mosquitto). JaCoCo prüft
+  in `mvn verify` 100 % Instruction-, Branch- und Line-Coverage; ausgenommen sind Startklasse,
+  Controller, DTOs und Konfiguration – Logik liegt ausschließlich in Services.
+* Frontend: Vitest + Testing Library, 100 % Coverage (ohne generierte API-Clients).
+* Firmware: Unity-Tests der hardwareunabhängigen Logik (`pio test -e native`).

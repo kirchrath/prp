@@ -1,4 +1,4 @@
-# MQTT-Protokoll Scanner ↔ Backend
+# MQTT-Protokoll Scanner ↔ device-service
 
 Präfix: `inventory/scanner/<deviceId>/…` – `deviceId` ist zugleich der MQTT-Benutzername des Scanners
 (per ACL erzwungen). Alle Nutzdaten sind JSON.
@@ -13,7 +13,8 @@ Beim Verbinden:
 
 Last Will (vom Broker gesendet, wenn der Scanner verschwindet): `{"online": false}`
 
-Unbekannte Geräte werden dabei automatisch registriert (ohne Lagerort).
+Unbekannte Geräte werden dabei automatisch registriert (ohne Lagerort). Ein entfernter Scanner wird beim
+nächsten Verbinden erneut registriert.
 
 ## `…/scan` (Scanner → Backend)
 
@@ -25,6 +26,8 @@ Unbekannte Geräte werden dabei automatisch registriert (ohne Lagerort).
 * `seq`: fortlaufend ab 1 je Neustart, `bootId`: zufällig je Neustart. Nachrichten mit gleicher
   `bootId` und `seq <=` der zuletzt verarbeiteten werden ignoriert (Mehrfachzustellung).
 * Nachrichten werden in Empfangsreihenfolge nacheinander verarbeitet.
+* Der device-service speichert den Scan und gibt ihn über Kafka (`device_scan`) an den stock-service;
+  ohne zugeordneten Lagerort antwortet er sofort mit `NO_LOCATION`.
 
 ## `…/feedback` (Backend → Scanner)
 
@@ -35,13 +38,14 @@ Unbekannte Geräte werden dabei automatisch registriert (ohne Lagerort).
 
 | `result` | Bedeutung | LED |
 |---|---|---|
+| `PENDING_ARTICLE` | unbekannter Barcode, Artikel wird gerade angelegt – weiter warten (bis 20 s) | weiß |
 | `IN_OK` | bekannter Artikel eingelagert | grün |
 | `IN_OK_NEW_ARTICLE` | aus Produktdatenbank angelegt und eingelagert | grün |
 | `IN_OK_UNKNOWN_ARTICLE` | unbekannt, als Platzhalter in der Inbox angelegt und eingelagert | gelb |
 | `OUT_OK` | ausgelagert | blau |
 | `UNKNOWN_EAN` | Auslagern eines unbekannten Barcodes | rot |
 | `NOT_IN_STOCK` | am Lagerort nicht vorhanden | rot |
-| `NO_LOCATION` | Scanner hat keinen Lagerort | rot |
+| `NO_LOCATION` | Scanner hat keinen Lagerort (oder Lagerort gelöscht) | rot |
 | `ERROR` | ungültige Nachricht / interner Fehler | rot |
 
 `quantity` ist der neue Bestand des Artikels an diesem Lagerort.

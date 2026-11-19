@@ -59,7 +59,7 @@ nicht zwingend.
 
 | LED | Ton | Bedeutung |
 |---|---|---|
-| weiß (gedimmt) | – | gesendet, warte auf Server |
+| weiß (gedimmt) | – | gesendet, warte auf Server (bei unbekanntem Artikel bis 20 s) |
 | grün | hoch | eingelagert |
 | gelb | 2 × hoch | eingelagert, Artikel unbekannt → in der Inbox ergänzen |
 | blau | mittel | ausgelagert |
@@ -68,13 +68,18 @@ nicht zwingend.
 | cyan | kurz | offline zwischengespeichert (bis 32 Scans), wird beim Verbinden gesendet |
 | orange blinkend | – | kein WLAN/MQTT |
 
-## Firmware bauen und flashen
+## Firmware bauen, testen und flashen
 
 ```bash
 cd scanner/firmware
-pio run -t upload
+pio test -e native            # Unity-Tests der Logik (lib/scanner_logic), läuft auf dem PC
+pio run -e esp32dev -t upload
 pio device monitor
 ```
+
+Die hardwareunabhängige Logik – Richtungserkennung, Zuordnung Barcode ↔ Bewegung, Barcode-Erkennung im
+seriellen Datenstrom, Feedback-Timeout, Offline-Puffer und MQTT-Nachrichten – liegt in
+`lib/scanner_logic` und hat keine Arduino-Abhängigkeit.
 
 Beim ersten Start (oder mit gedrückter BOOT-Taste beim Einschalten) öffnet der Scanner den Access Point
 `Vorrat-<geräte-id>`. Dort WLAN, MQTT-Broker (IP des Docker-Hosts), Port, Geräte-ID und das mit

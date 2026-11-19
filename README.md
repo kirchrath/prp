@@ -5,23 +5,30 @@ Verbrauchsmaterial (Lebensmittel, Putzmittel, …) mit hierarchischen Lagerorten
 ESP32-Scanner oder Handykamera, MHD-Verwaltung, Mindestbestand/Einkaufsliste und Bewegungshistorie.
 
 ```
-infra/                 Traefik, Keycloak, Mosquitto (gemeinsam für alle Dienste)
+infra/                         Traefik, Keycloak, Kafka (KRaft), Mosquitto – gemeinsam für alle Dienste
 inventory/
-  backend/             Spring Boot 4.1 · Java 25 · PostgreSQL · Flyway
-  frontend/            React · TypeScript · Vite · Bulma · generierter OpenAPI-Client
-  openapi/openapi.json OpenAPI-Dokument (vom Backend exportiert)
+  services/catalog-service/    Artikel, Barcodes, Kategorien, Produktdatenbank-Abfrage
+  services/stock-service/      Lagerorte, Bestand (Chargen), Bewegungen, Scan-Buchungen
+  services/shopping-service/   Einkaufsliste (manuell + automatisch aus Mindestbestand)
+  services/device-service/     ESP32-Scanner, MQTT ↔ Kafka
+  frontend/                    React · TypeScript · Vite · Bulma · generierte OpenAPI-Clients
+  openapi/<service>.json       OpenAPI-Dokumente (von den Services exportiert)
   docker-compose.yml
-scanner/firmware/      ESP32-Firmware (PlatformIO/Arduino)
-docs/                  Architektur, MQTT-Protokoll, Scanner-Hardware
+scanner/firmware/              ESP32-Firmware (PlatformIO/Arduino) + Logik-Bibliothek mit Unity-Tests
+docs/                          Architektur, Events, MQTT-Protokoll, Scanner-Hardware
 ```
 
 ## Architektur in Kürze
 
 ```
-Browser/Handy ──HTTPS──▶ Traefik ──▶ inventory-frontend (nginx) ──/api──▶ inventory-backend ──▶ PostgreSQL
-      │                    └──────▶ Keycloak (OIDC, PKCE)            ▲  JWT-Prüfung (JWKS intern)
-      └──── Login ─────────────────────┘                             │
-ESP32-Scanner ──MQTT (1883)──▶ Mosquitto ◀───────────────────────────┘
+Browser/Handy ──HTTPS──▶ Traefik ─┬─ /api/catalog  ─▶ catalog-service ─┐
+                                  ├─ /api/stock    ─▶ stock-service   ─┤   PostgreSQL „inventory“
+                                  ├─ /api/shopping ─▶ shopping-service─┤   (ein Schema je Service)
+                                  ├─ /api/device   ─▶ device-service  ─┘
+                                  ├─ /             ─▶ frontend (nginx)
+                                  └─ auth.…        ─▶ Keycloak (OIDC/PKCE)
+Services ◀──── Kafka (ein Topic je Aggregat, <service>_<aggregat>) ────▶ Services
+ESP32-Scanner ──MQTT──▶ Mosquitto ◀──▶ device-service
 ```
 
 Details: [docs/architecture.md](docs/architecture.md) · MQTT: [docs/mqtt.md](docs/mqtt.md) ·
@@ -49,14 +56,15 @@ TLS – per `.env` wählbar:
 * **Let's Encrypt (DNS-01)**: `COMPOSE_FILE=docker-compose.yml:docker-compose.letsencrypt.yml` sowie
   `ACME_EMAIL`, `ACME_DNS_PROVIDER` und die Zugangsdaten des DNS-Providers setzen.
 
+MQTT-Benutzer **vor** dem ersten Start anlegen (Mosquitto startet nicht ohne Passwortdatei):
+
 ```bash
+scripts/mqtt-user.sh add device-service          # Passwort notieren -> inventory/.env MQTT_PASSWORD
 docker compose up -d
-scripts/mqtt-user.sh add inventory-backend      # Passwort notieren -> inventory/.env MQTT_PASSWORD
 ```
 
-Keycloak-Admin (`https://AUTH_HOST`, Zugang aus `.env`): Im Realm **home** unter *Users* die
-Benutzer anlegen (Passwort unter *Credentials*). Der Client `inventory-frontend` wird beim ersten Start
-importiert.
+Keycloak-Admin (`https://AUTH_HOST`, Zugang aus `.env`): Im Realm **home** unter *Users* die Benutzer
+anlegen (Passwort unter *Credentials*). Der Client `inventory-frontend` wird beim ersten Start importiert.
 
 ### 3. Vorrat
 
@@ -78,25 +86,28 @@ Danach `https://INVENTORY_HOST` öffnen, anmelden, unter *Einstellungen → Lage
 
 ## Entwicklung
 
-Voraussetzungen: JDK 25, Maven, Node 22+, PostgreSQL (lokal oder Container).
+Voraussetzungen: JDK 25, Maven, Node 22+, Docker (für Testcontainers), PlatformIO.
 
 ```bash
-# Backend (ohne Keycloak/MQTT)
-cd inventory/backend
-SECURITY_ENABLED=false mvn spring-boot:run      # DB: localhost:5432/inventory, user/pass inventory
+# Services: Tests mit PostgreSQL-, Kafka- (und Mosquitto-)Containern, JaCoCo 100 % Pflicht
+cd inventory/services/catalog-service && mvn verify       # schreibt auch inventory/openapi/catalog.json
 
-# Tests (eingebettetes PostgreSQL, kein Docker nötig) – exportiert auch inventory/openapi/openapi.json
-mvn verify
+# lokal starten (Ports 8081–8084): PostgreSQL, Kafka, Keycloak aus infra/ bzw. lokal
+mvn spring-boot:run
 
 # Frontend
-cd ../frontend
+cd inventory/frontend
 npm install
-npm run generate-api      # TS-Client aus ../openapi/openapi.json neu erzeugen (benötigt Java)
-npm run dev               # http://localhost:5173, /api wird auf :8080 weitergeleitet
+npm test                  # Vitest, 100 % Coverage Pflicht
+npm run generate-api      # TS-Clients aus ../openapi/*.json neu erzeugen (benötigt Java)
+npm run dev               # http://localhost:5173, /api/<service> wird auf 8081–8084 weitergeleitet
+
+# Firmware
+cd scanner/firmware
+pio test -e native        # Unity-Tests der Logik
+pio run -e esp32dev
 ```
 
-Für die Entwicklung ohne Login in `frontend/public/config.js` den `oidc`-Block entfernen.
-
-Der API-Client unter `frontend/src/api/generated` ist eingecheckt, damit der Frontend-Container ohne Java
-gebaut werden kann. Ablauf bei API-Änderungen: Backend ändern → `mvn verify` → `npm run generate-api` →
-beides committen.
+Die API-Clients unter `frontend/src/api/<service>` sind eingecheckt, damit der Frontend-Container ohne
+Java gebaut werden kann. Ablauf bei API-Änderungen: Service ändern → `mvn verify` → `npm run generate-api`
+→ alles committen.
