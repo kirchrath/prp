@@ -1,14 +1,17 @@
 package home.inventory.stock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import home.inventory.stock.booking.Booking;
 import home.inventory.stock.booking.BookingRepository;
 import home.inventory.stock.booking.BookingService;
+import home.inventory.stock.booking.BookingStatus;
 import home.inventory.stock.booking.dto.ScanDataDto;
 import home.inventory.stock.booking.dto.ScanEventDto;
 import home.inventory.stock.common.dto.AuditDto;
@@ -132,5 +135,33 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
         assertThat(booking.get("data").get("scanId").asString()).isEqualTo(scan.toString());
         Thread.sleep(1000);
         assertThat(repository.findAll().stream().filter(b -> scan.equals(b.scanId())).count()).isEqualTo(1);
+    }
+
+    @Test
+    void barcodesAreCheckedAndNormalized() throws Exception {
+        UUID location = location(unique("Regal"), null);
+        article("Cornflakes", "0036000291452"); // stored normalized (EAN-13)
+
+        // UPC-A spelling of the same code
+        assertThat(statusOf(scan("036000291452", location, "IN"))).isEqualTo("IN_OK");
+        String stored = read("/api/stock/bookings/" + scan("036000291452", location, "OUT"), "$.data.ean");
+        assertThat(stored).isEqualTo("0036000291452");
+
+        // invalid codes from the browser are rejected
+        for (String invalid : new String[] {"4006381333932", "12345", "40063813339AB"}) {
+            mvc.perform(json(post("/api/stock/bookings"),
+                            "{\"ean\":\"%s\",\"locationId\":\"%s\",\"direction\":\"IN\"}".formatted(invalid, location)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value(startsWith("Ungültige EAN")));
+        }
+
+        // invalid codes from a scanner get a booking with INVALID_EAN, so the scanner receives feedback
+        UUID scan = UUID.randomUUID();
+        bookings.handleScan(scanEvent(scan, false, "REQUESTED", " 4006381333932 ", location, "IN"));
+        Booking booking = repository.findAll().stream().filter(b -> scan.equals(b.scanId())).findFirst().orElseThrow();
+        assertThat(booking.status()).isEqualTo(BookingStatus.INVALID_EAN);
+        assertThat(booking.ean()).isEqualTo("4006381333932");
+        JsonNode event = kafka.await("stock_booking", booking.id().toString(), 1).getFirst();
+        assertThat(event.get("data").get("message").asString()).startsWith("Ungültige EAN");
     }
 }

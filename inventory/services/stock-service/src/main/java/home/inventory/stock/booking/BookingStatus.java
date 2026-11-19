@@ -14,6 +14,8 @@ public enum BookingStatus {
     OUT_OK,
     /** Removal of a barcode that is not known. */
     UNKNOWN_EAN,
+    /** Scanner sent a code that is not a formally valid GTIN (length, digits, check digit). */
+    INVALID_EAN,
     /** Removal although nothing is in stock at that location. */
     NOT_IN_STOCK,
     /** Location missing or deleted. */

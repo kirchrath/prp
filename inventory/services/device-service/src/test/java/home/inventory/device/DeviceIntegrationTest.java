@@ -180,4 +180,30 @@ class DeviceIntegrationTest extends AbstractIntegrationTest {
         assertThat(scanners.findByDeviceId(device)).isEmpty();
         assertThat(mqtt.feedbackCount(device)).isZero();
     }
+
+    @Test
+    void barcodesAreCheckedAndNormalized() throws Exception {
+        String device = device();
+        String topic = "inventory/scanner/" + device + "/scan";
+        mqtt.publish(topic, "{\"ean\":\"036000291452\",\"direction\":\"IN\",\"seq\":1,\"bootId\":\"b1\"}");
+        mqtt.feedback(device, 1); // no location yet
+        assign(awaitScanner(device), UUID.randomUUID());
+
+        // invalid check digit: rejected, scanner gets INVALID_EAN
+        mqtt.publish(topic, "{\"ean\":\"4006381333932\",\"direction\":\"IN\",\"seq\":2,\"bootId\":\"b1\"}");
+        JsonNode invalid = mqtt.feedback(device, 2).get(1);
+        assertThat(invalid.get("result").asString()).isEqualTo("INVALID_EAN");
+        assertThat(invalid.get("success").asBoolean()).isFalse();
+        assertThat(invalid.get("message").asString()).startsWith("Ungültige EAN");
+        Scan rejected = awaitScan(device, 2);
+        assertThat(rejected.status()).isEqualTo(ScanStatus.REJECTED);
+        assertThat(rejected.ean()).isEqualTo("4006381333932");
+
+        // UPC-A is forwarded as EAN-13
+        mqtt.publish(topic, "{\"ean\":\"036000291452\",\"direction\":\"IN\",\"seq\":3,\"bootId\":\"b1\"}");
+        Scan scan = awaitScan(device, 3);
+        assertThat(scan.ean()).isEqualTo("0036000291452");
+        JsonNode event = kafka.await("device_scan", scan.id().toString(), 1).getFirst();
+        assertThat(event.get("data").get("ean").asString()).isEqualTo("0036000291452");
+    }
 }

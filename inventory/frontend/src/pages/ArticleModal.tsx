@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApi } from '../api/ApiContext';
+import { INVALID_GTIN, normalizeGtin } from '../api/gtin';
 import {
   ArticleDataDtoContentUnitEnum,
   ArticleListDtoStatusEnum,
@@ -39,6 +40,7 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
   const [minStock, setMinStock] = useState(data?.minStock ?? 0);
   const [eans, setEans] = useState<string[]>(data?.eans ?? []);
   const [newEan, setNewEan] = useState('');
+  const [eanError, setEanError] = useState(false);
   const [mergeTarget, setMergeTarget] = useState('');
 
   const run = async (action: () => Promise<unknown>, message: string) => {
@@ -76,8 +78,11 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
   };
 
   const addEan = () => {
-    const code = newEan.trim();
-    if (code && !eans.includes(code)) setEans([...eans, code]);
+    if (!newEan.trim()) return;
+    const code = normalizeGtin(newEan);
+    setEanError(!code);
+    if (!code) return;
+    if (!eans.includes(code)) setEans([...eans, code]);
     setNewEan('');
   };
 
@@ -144,8 +149,10 @@ export function ArticleModal({ existing, categories, articles, onClose, onSaved 
         </div>
         <div className="field has-addons">
           <div className="control is-expanded">
-            <input className="input" inputMode="numeric" placeholder="EAN hinzufügen" value={newEan}
-              onChange={(e) => setNewEan(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addEan()} />
+            <input className={`input ${eanError ? 'is-danger' : ''}`} inputMode="numeric" placeholder="EAN hinzufügen"
+              value={newEan} onChange={(e) => { setNewEan(e.target.value); setEanError(false); }}
+              onKeyDown={(e) => e.key === 'Enter' && addEan()} />
+            {eanError && <p className="help is-danger">{INVALID_GTIN}</p>}
           </div>
           <div className="control">
             <button className="button" onClick={addEan}>

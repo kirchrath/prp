@@ -2,6 +2,7 @@ package home.inventory.device.scan;
 
 import home.inventory.device.common.AuditMapper;
 import home.inventory.device.common.EventPublisher;
+import home.inventory.device.common.Gtin;
 import home.inventory.device.common.OutgoingEvent;
 import home.inventory.device.config.Topics;
 import home.inventory.device.mqtt.dto.ScanMessageDto;
@@ -13,6 +14,7 @@ import home.inventory.device.scanner.Scanner;
 import home.inventory.device.scanner.ScannerService;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,8 +56,14 @@ public class ScanService {
             return;
         }
         scanner = scanners.save(scanner.withLastScan(message.bootId(), message.seq(), Instant.now()));
-        Scan scan = Scan.create(scanner.id(), deviceId, message.ean().trim(), direction, scanner.locationId(),
-                message.seq(), message.bootId());
+        Optional<String> ean = Gtin.normalize(message.ean());
+        Scan scan = Scan.create(scanner.id(), deviceId, ean.orElse(message.ean().trim()), direction,
+                scanner.locationId(), message.seq(), message.bootId());
+        if (ean.isEmpty()) {
+            save(scan.withResult(ScanStatus.REJECTED, FeedbackService.INVALID_EAN, null, null, Gtin.INVALID, null));
+            feedback.send(deviceId, message.seq(), FeedbackService.INVALID_EAN, null, null, Gtin.INVALID);
+            return;
+        }
         if (scanner.locationId() == null) {
             String text = "Scanner " + scanner.displayName() + " ist keinem Lagerort zugeordnet";
             save(scan.withResult(ScanStatus.REJECTED, FeedbackService.NO_LOCATION, null, null, text, null));

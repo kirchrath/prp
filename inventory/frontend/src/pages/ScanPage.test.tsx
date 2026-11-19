@@ -58,18 +58,23 @@ describe('ScanPage', () => {
     await userEvent.selectOptions(await screen.findByLabelText('Lagerort'), 'k');
     expect(window.localStorage.getItem('scan.locationId')).toBe('k');
 
-    await userEvent.type(screen.getByPlaceholderText('EAN manuell eingeben'), ' 4001 {Enter}');
+    await userEvent.type(screen.getByPlaceholderText('EAN manuell eingeben'), ' 036000291452 {Enter}');
     expect(await screen.findByText('Unbekannt (1)')).toBeInTheDocument();
     expect(screen.getByText('Bestand am Ort: 1')).toBeInTheDocument();
     expect(screen.getByText('In der Inbox ergänzen')).toBeInTheDocument();
-    expect(api.bookings.createBookingRaw).toHaveBeenCalledWith({ scanBookingDto: { ean: '4001', locationId: 'k', direction: 'IN' } });
+    expect(api.bookings.createBookingRaw).toHaveBeenCalledWith({ scanBookingDto: { ean: '0036000291452', locationId: 'k', direction: 'IN' } });
 
     await userEvent.click(screen.getByText('⬆ Auslagern'));
-    await userEvent.type(screen.getByPlaceholderText('EAN manuell eingeben'), '5002');
+    const manual = screen.getByPlaceholderText('EAN manuell eingeben');
+    await userEvent.type(manual, '5002');
+    expect(screen.getByText(/Ungültige EAN/)).toBeInTheDocument();
+    expect(screen.getByText('Buchen')).toBeDisabled();
+    await userEvent.clear(manual);
+    await userEvent.type(manual, '96385074');
     await userEvent.click(screen.getByText('Buchen'));
-    expect(await screen.findByText('5002')).toBeInTheDocument();
-    expect(screen.getByText('5002').closest('.notification')).toHaveClass('is-danger');
-    expect(api.bookings.createBookingRaw).toHaveBeenLastCalledWith({ scanBookingDto: { ean: '5002', locationId: 'k', direction: 'OUT' } });
+    expect(await screen.findByText('96385074')).toBeInTheDocument();
+    expect(screen.getByText('96385074').closest('.notification')).toHaveClass('is-danger');
+    expect(api.bookings.createBookingRaw).toHaveBeenLastCalledWith({ scanBookingDto: { ean: '96385074', locationId: 'k', direction: 'OUT' } });
     await userEvent.click(screen.getByText('⬇ Einlagern'));
     expect(vibrate).toHaveBeenCalledWith(80);
     expect(vibrate).toHaveBeenCalledWith([100, 60, 100]);
@@ -80,7 +85,7 @@ describe('ScanPage', () => {
     window.localStorage.setItem('scan.locationId', 'k');
     const api = setup(apiError(404, 'Lagerort nicht vorhanden'));
     renderWith(<ScanPage />, api);
-    await userEvent.type(screen.getByPlaceholderText('EAN manuell eingeben'), '7{Enter}');
+    await userEvent.type(screen.getByPlaceholderText('EAN manuell eingeben'), '4006381333931{Enter}');
     expect(await screen.findByText(/Lagerort nicht vorhanden/)).toBeInTheDocument();
   });
 
@@ -94,19 +99,24 @@ describe('ScanPage', () => {
     let now = 10_000;
     vi.spyOn(Date, 'now').mockImplementation(() => now);
     act(() => zxing.callback!(undefined));
-    act(() => zxing.callback!({ getText: () => '111' }));
-    act(() => zxing.callback!({ getText: () => '222' })); // another code while booking: ignored
+    act(() => zxing.callback!({ getText: () => '4006381333931' }));
+    act(() => zxing.callback!({ getText: () => '96385074' })); // another code while booking: ignored
     expect(await screen.findByText('Reis')).toBeInTheDocument();
     // the item stays in view for a long time: seen continuously, never booked again
     for (let i = 0; i < 10; i++) {
       now += 1500;
-      act(() => zxing.callback!({ getText: () => '111' }));
+      act(() => zxing.callback!({ getText: () => '4006381333931' }));
     }
     expect(api.bookings.createBookingRaw).toHaveBeenCalledTimes(1);
     // taken away and shown again: next unit
     now += 2500;
-    act(() => zxing.callback!({ getText: () => '111' }));
+    act(() => zxing.callback!({ getText: () => '4006381333931' }));
     expect(await screen.findByText('Mehl')).toBeInTheDocument();
+    expect(api.bookings.createBookingRaw).toHaveBeenCalledTimes(2);
+    // a code that is not a valid EAN (e.g. Code 128 label) is reported, not booked
+    act(() => zxing.callback!({ getText: () => 'ABC-123' }));
+    expect(await screen.findByText(/Ungültige EAN/)).toBeInTheDocument();
+    expect(screen.getByText('ABC-123').closest('.notification')).toHaveClass('is-danger');
     expect(api.bookings.createBookingRaw).toHaveBeenCalledTimes(2);
     vi.mocked(Date.now).mockRestore();
     await userEvent.click(screen.getByText('Kamera stoppen'));

@@ -13,6 +13,7 @@ import home.inventory.stock.booking.dto.ScanEventDto;
 import home.inventory.stock.common.AuditMapper;
 import home.inventory.stock.common.CurrentUser;
 import home.inventory.stock.common.EventPublisher;
+import home.inventory.stock.common.Gtin;
 import home.inventory.stock.common.NotFoundException;
 import home.inventory.stock.common.OutgoingEvent;
 import home.inventory.stock.config.Topics;
@@ -54,7 +55,7 @@ public class BookingService {
 
     /** Camera scan from the browser. */
     public UUID scan(ScanBookingDto request) {
-        return book(Booking.create(request.ean().trim(), request.locationId(), request.direction(), MovementSource.MOBILE,
+        return book(Booking.create(Gtin.require(request.ean()), request.locationId(), request.direction(), MovementSource.MOBILE,
                 null, null, CurrentUser.name())).id();
     }
 
@@ -71,7 +72,13 @@ public class BookingService {
         } catch (IllegalArgumentException e) {
             return;
         }
-        book(Booking.create(data.ean().trim(), data.locationId(), direction, MovementSource.SCANNER, event.id(),
+        Optional<String> ean = Gtin.normalize(data.ean());
+        if (ean.isEmpty()) {
+            save(Booking.create(data.ean().trim(), data.locationId(), direction, MovementSource.SCANNER, event.id(),
+                    data.scannerId(), null).withResult(BookingStatus.INVALID_EAN, null, null, null, Gtin.INVALID));
+            return;
+        }
+        book(Booking.create(ean.get(), data.locationId(), direction, MovementSource.SCANNER, event.id(),
                 data.scannerId(), null));
     }
 

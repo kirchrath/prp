@@ -10,6 +10,7 @@ import home.inventory.catalog.category.CategoryRepository;
 import home.inventory.catalog.category.CategoryService;
 import home.inventory.catalog.common.ConflictException;
 import home.inventory.catalog.common.EventPublisher;
+import home.inventory.catalog.common.Gtin;
 import home.inventory.catalog.common.NotFoundException;
 import home.inventory.catalog.common.OutgoingEvent;
 import home.inventory.catalog.common.VersionCheck;
@@ -78,7 +79,7 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public ArticleListDto getByEan(String ean) {
-        Article article = findActiveByEan(ean.trim()).orElseThrow(() -> new NotFoundException("Artikel mit EAN", ean));
+        Article article = findActiveByEan(Gtin.require(ean)).orElseThrow(() -> new NotFoundException("Artikel mit EAN", ean));
         String categoryName = article.categoryId() == null ? null
                 : categories.findActive(article.categoryId()).map(Category::name).orElse(null);
         return ArticleMapper.toListDto(article, categoryName);
@@ -86,7 +87,7 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public ProductLookupDto lookup(String ean) {
-        String code = ean.trim();
+        String code = Gtin.require(ean);
         UUID existing = findActiveByEan(code).map(Article::id).orElse(null);
         return lookup.lookup(code)
                 .map(i -> {
@@ -133,7 +134,11 @@ public class ArticleService {
      * as inbox placeholder). If it exists already, it is published again so the stock service receives it.
      */
     public void resolvePendingBarcode(String ean) {
-        String code = ean.trim();
+        Optional<String> normalized = Gtin.normalize(ean);
+        if (normalized.isEmpty()) {
+            return;
+        }
+        String code = normalized.get();
         Optional<Article> existing = findActiveByEan(code);
         if (existing.isPresent()) {
             publish(existing.get());
@@ -155,7 +160,7 @@ public class ArticleService {
         }
         Set<ArticleBarcode> barcodes = new LinkedHashSet<>();
         for (String ean : data.eans()) {
-            String code = ean.trim();
+            String code = Gtin.require(ean);
             findActiveByEan(code)
                     .filter(other -> !other.id().equals(article.id()))
                     .ifPresent(other -> {

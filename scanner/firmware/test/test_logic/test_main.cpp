@@ -6,6 +6,7 @@
 #include "barcode_reader.h"
 #include "direction.h"
 #include "feedback_logic.h"
+#include "gtin.h"
 #include "pairing.h"
 #include "protocol.h"
 #include "scan_queue.h"
@@ -138,6 +139,18 @@ void test_reader_frames_codes() {
 
 // ---------------------------------------------------------------- feedback
 
+void test_gtin() {
+  for (const char* valid : {"4006381333931", "96385074", "036000291452", "04006381333931", "14006381333938",
+                            "01234505", "01234133", "01234543", "11234502"}) {
+    TEST_ASSERT_TRUE_MESSAGE(logic::isValidGtin(valid), valid);
+  }
+  for (const char* invalid : {"", "4006381333932", "400638133393A", "4006-381333931", "1234567", "123456789",
+                              "123456789012345", "036000291453", "24006381333931", "21234505", "01234506",
+                              "01234561"}) {
+    TEST_ASSERT_FALSE_MESSAGE(logic::isValidGtin(invalid), invalid);
+  }
+}
+
 void test_signal_for_result() {
   TEST_ASSERT_TRUE(signalForResult("IN_OK") == Signal::InOk);
   TEST_ASSERT_TRUE(signalForResult("IN_OK_NEW_ARTICLE") == Signal::InOk);
@@ -145,6 +158,7 @@ void test_signal_for_result() {
   TEST_ASSERT_TRUE(signalForResult("OUT_OK") == Signal::OutOk);
   TEST_ASSERT_TRUE(signalForResult("PENDING_ARTICLE") == Signal::Waiting);
   TEST_ASSERT_TRUE(signalForResult("NOT_IN_STOCK") == Signal::Error);
+  TEST_ASSERT_TRUE(signalForResult("INVALID_EAN") == Signal::Error);
 }
 
 void test_feedback_timer() {
@@ -222,6 +236,7 @@ int main() {
   RUN_TEST(test_movement_without_barcode_is_dropped);
   RUN_TEST(test_same_code_is_ignored_for_a_while);
   RUN_TEST(test_reader_frames_codes);
+  RUN_TEST(test_gtin);
   RUN_TEST(test_signal_for_result);
   RUN_TEST(test_feedback_timer);
   RUN_TEST(test_queue);

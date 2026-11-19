@@ -15,6 +15,11 @@ public class ApiControllerAdvice {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
+    @ExceptionHandler(InvalidGtinException.class)
+    ProblemDetail invalidGtin(InvalidGtinException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
     @ExceptionHandler({ConflictException.class, OptimisticLockingFailureException.class})
     ProblemDetail conflict(RuntimeException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());

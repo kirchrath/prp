@@ -66,6 +66,23 @@ Infrastruktur (`infra/`): Traefik (TLS, Routing nach Pfad), Keycloak (OIDC), Kaf
 | `recipe_recipe` | Rezepte | – |
 | `recipe_shopping_request` | fehlende Zutaten eines Rezepts | shopping |
 
+## Barcodes (EAN/GTIN)
+
+Alle Eingänge prüfen Barcodes formal – Buchungen (stock-service), Artikel und Produktabfrage (catalog-service),
+Scanner-Nachrichten (device-service), das Frontend und die Scanner-Firmware, jeweils mit denselben Regeln
+(`common/Gtin.java`, `frontend/src/api/gtin.ts`, `scanner_logic/gtin.cpp`):
+
+* nur Ziffern; EAN-8, UPC-A (12), EAN-13 oder GTIN-14, jeweils mit gültiger Prüfziffer
+* UPC-E (8 Stellen, verkürzte UPC-A) wird akzeptiert, wenn der Code keine gültige EAN-8 ist
+* Gespeichert und verglichen wird die **normierte** Form, damit derselbe Artikel immer denselben Code hat:
+  UPC-A und UPC-E werden mit führender 0 zu EAN-13, GTIN-14 mit führender 0 wird zu EAN-13, EAN-8 bleibt 8-stellig.
+  UPC-E-Codes mit Endziffer 5–9 haben immer auch eine gültige EAN-8-Prüfziffer und bleiben deshalb 8-stellig.
+
+Ungültige Codes: REST-Aufrufe antworten mit HTTP 400 („Ungültige EAN …“), Scans eines Scanners werden mit
+`INVALID_EAN` abgelehnt (Firmware: rotes Signal, nichts wird gesendet). Beim Update (Flyway) werden vorhandene
+12- und 14-stellige Codes normiert; Codes, die keine gültige EAN sind, bleiben stehen und müssen beim nächsten
+Bearbeiten des Artikels entfernt werden.
+
 ## Abläufe
 
 ### Scan am ESP32

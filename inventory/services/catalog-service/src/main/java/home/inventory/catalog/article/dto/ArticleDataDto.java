@@ -6,7 +6,6 @@ import home.inventory.catalog.article.ArticleStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
@@ -28,7 +27,8 @@ public record ArticleDataDto(
         @Nullable @Size(max = 1000) String imageUrl,
         @Nullable UUID categoryId,
         @Min(0) int minStock,
-        @NotNull List<@Pattern(regexp = "[0-9A-Za-z\\-]{1,64}") String> eans,
+        // formally checked and normalized by the service (Gtin)
+        @NotNull List<@NotNull @Size(max = 64) String> eans,
         @Nullable ArticleStatus status,
         @Nullable ArticleSource source,
         @Nullable UUID mergedInto) {

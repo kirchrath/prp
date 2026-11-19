@@ -15,6 +15,7 @@
 #include "direction.h"
 #include "feedback.h"
 #include "feedback_logic.h"
+#include "gtin.h"
 #include "pairing.h"
 #include "pins.h"
 #include "protocol.h"
@@ -206,7 +207,10 @@ void loop() {
   if (dir != Direction::None) pairer.move(dir, now);
 
   logic::PairResult pair = pairer.poll(now);
-  if (pair.kind == logic::PairResult::Submit) {
+  if (pair.kind == logic::PairResult::Submit && !logic::isValidGtin(pair.ean)) {
+    Serial.printf("Barcode %s is not a valid EAN - discarded\n", pair.ean.c_str());
+    feedbackShow(Signal::Error);
+  } else if (pair.kind == logic::PairResult::Submit) {
     submit(pair.ean, pair.direction);
   } else if (pair.kind == logic::PairResult::NoDirection) {
     Serial.printf("Barcode %s without direction - discarded\n", pair.ean.c_str());

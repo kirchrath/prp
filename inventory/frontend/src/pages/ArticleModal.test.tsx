@@ -28,27 +28,32 @@ describe('ArticleModal', () => {
     expect(screen.getByText('Speichern')).toBeDisabled();
 
     const ean = screen.getByPlaceholderText('EAN hinzufügen');
-    await userEvent.type(ean, ' 4001 {Enter}');
-    await userEvent.type(ean, '4001');
+    await userEvent.click(screen.getByText('Hinzufügen')); // empty: nothing happens
+    await userEvent.type(ean, '4001{Enter}');
+    expect(screen.getByText(/Ungültige EAN/)).toBeInTheDocument();
+    await userEvent.clear(ean);
+    expect(screen.queryByText(/Ungültige EAN/)).not.toBeInTheDocument();
+    await userEvent.type(ean, ' 04006381333931 {Enter}'); // GTIN-14 -> EAN-13
+    await userEvent.type(ean, '4006381333931');
     await userEvent.click(screen.getByText('Hinzufügen'));
     await userEvent.click(screen.getByText('Hinzufügen'));
-    expect(screen.getAllByText('4001')).toHaveLength(1);
+    expect(screen.getAllByText('4006381333931')).toHaveLength(1);
 
-    await userEvent.click(screen.getByLabelText('EAN 4001 nachschlagen'));
+    await userEvent.click(screen.getByLabelText('EAN 4006381333931 nachschlagen'));
     expect(await screen.findByDisplayValue('Nudeln')).toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('EAN 4001 nachschlagen')); // found without data keeps the values
+    await userEvent.click(screen.getByLabelText('EAN 4006381333931 nachschlagen')); // found without data keeps the values
     expect(screen.getByDisplayValue('Barilla')).toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('EAN 4001 nachschlagen'));
+    await userEvent.click(screen.getByLabelText('EAN 4006381333931 nachschlagen'));
     expect(await screen.findByText(/gehört bereits/)).toBeInTheDocument();
     expect(screen.getByText('Keine Produktdaten gefunden.')).toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('EAN 4001 nachschlagen'));
+    await userEvent.click(screen.getByLabelText('EAN 4006381333931 nachschlagen'));
     expect(await screen.findByText('Fehler 500')).toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText('Kategorie'), 'c1');
     fireEvent.change(screen.getByLabelText('Mindestbestand'), { target: { value: '2' } });
     await userEvent.click(screen.getByText('Speichern'));
     expect(api.articles.createArticle).toHaveBeenCalledWith({
-      articleSaveDto: { data: { name: 'Nudeln', brand: 'Barilla', packageSize: '500 g', contentAmount: 500, contentUnit: 'GRAM', imageUrl: 'img', categoryId: 'c1', minStock: 2, eans: ['4001'] } },
+      articleSaveDto: { data: { name: 'Nudeln', brand: 'Barilla', packageSize: '500 g', contentAmount: 500, contentUnit: 'GRAM', imageUrl: 'img', categoryId: 'c1', minStock: 2, eans: ['4006381333931'] } },
     });
     expect(onSaved).toHaveBeenCalled();
   });

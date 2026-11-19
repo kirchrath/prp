@@ -821,7 +821,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "REQUESTED", "PENDING_ARTICLE", "IN_OK", "IN_OK_NEW_ARTICLE", "IN_OK_UNKNOWN_ARTICLE", "OUT_OK", "UNKNOWN_EAN", "NOT_IN_STOCK", "NO_LOCATION" ]
+            "enum" : [ "REQUESTED", "PENDING_ARTICLE", "IN_OK", "IN_OK_NEW_ARTICLE", "IN_OK_UNKNOWN_ARTICLE", "OUT_OK", "UNKNOWN_EAN", "INVALID_EAN", "NOT_IN_STOCK", "NO_LOCATION" ]
           },
           "articleId" : {
             "type" : "string",

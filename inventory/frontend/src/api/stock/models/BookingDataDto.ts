@@ -99,6 +99,7 @@ export enum BookingDataDtoStatusEnum {
     InOkUnknownArticle = 'IN_OK_UNKNOWN_ARTICLE',
     OutOk = 'OUT_OK',
     UnknownEan = 'UNKNOWN_EAN',
+    InvalidEan = 'INVALID_EAN',
     NotInStock = 'NOT_IN_STOCK',
     NoLocation = 'NO_LOCATION'
 }

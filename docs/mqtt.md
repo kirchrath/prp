@@ -44,6 +44,7 @@ nächsten Verbinden erneut registriert.
 | `IN_OK_UNKNOWN_ARTICLE` | unbekannt, als Platzhalter in der Inbox angelegt und eingelagert | gelb |
 | `OUT_OK` | ausgelagert | blau |
 | `UNKNOWN_EAN` | Auslagern eines unbekannten Barcodes | rot |
+| `INVALID_EAN` | Code ist keine gültige EAN (Länge, Ziffern, Prüfziffer); die Firmware prüft das schon selbst und sendet solche Codes gar nicht erst | rot |
 | `NOT_IN_STOCK` | am Lagerort nicht vorhanden | rot |
 | `NO_LOCATION` | Scanner hat keinen Lagerort (oder Lagerort gelöscht) | rot |
 | `ERROR` | ungültige Nachricht / interner Fehler | rot |

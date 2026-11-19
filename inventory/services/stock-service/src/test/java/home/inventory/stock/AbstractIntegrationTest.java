@@ -91,6 +91,11 @@ public abstract class AbstractIntegrationTest {
     }
 
     protected static String ean() {
-        return String.valueOf(4_000_000_000_000L + (long) (Math.random() * 999_999_999_999L));
+        String body = String.valueOf(400_000_000_000L + (long) (Math.random() * 99_999_999_999L));
+        int sum = 0;
+        for (int i = body.length() - 1, weight = 3; i >= 0; i--, weight = 4 - weight) {
+            sum += (body.charAt(i) - '0') * weight;
+        }
+        return body + (10 - sum % 10) % 10; // valid EAN-13
     }
 }

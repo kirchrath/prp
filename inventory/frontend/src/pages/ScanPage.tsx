@@ -5,6 +5,7 @@ import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { useApi } from '../api/ApiContext';
 import { scanAndWait } from '../api/bookings';
 import { errorMessage } from '../api/errors';
+import { INVALID_GTIN, normalizeGtin } from '../api/gtin';
 import { BookingDataDtoStatusEnum } from '../api/stock';
 import { LocationSelect } from '../components/LocationSelect';
 import { useAsync } from '../hooks/useAsync';
@@ -84,9 +85,11 @@ export function ScanPage() {
   const book = useCallback(
     async (ean: string) => {
       const { locationId: loc, direction: dir } = settings.current;
+      const code = normalizeGtin(ean);
       let entry: Entry;
       try {
-        const b = await scanAndWait(api, ean, loc!, dir);
+        if (!code) throw new Error(INVALID_GTIN);
+        const b = await scanAndWait(api, code, loc!, dir);
         entry = { ean, at: new Date(), status: b.status, article: b.articleName, quantity: b.quantityAtLocation, message: b.message };
       } catch (e) {
         entry = { ean, at: new Date(), status: 'ERROR', message: await errorMessage(e) };
@@ -137,6 +140,7 @@ export function ScanPage() {
   }, [cameraOn, book]);
 
   const isIn = direction === 'IN';
+  const manualInvalid = manualEan.trim() !== '' && !normalizeGtin(manualEan);
 
   return (
     <>
@@ -197,11 +201,12 @@ export function ScanPage() {
             }}
           >
             <div className="control is-expanded">
-              <input className="input" inputMode="numeric" placeholder="EAN manuell eingeben" value={manualEan}
-                onChange={(e) => setManualEan(e.target.value)} />
+              <input className={`input ${manualInvalid ? 'is-danger' : ''}`} inputMode="numeric"
+                placeholder="EAN manuell eingeben" value={manualEan} onChange={(e) => setManualEan(e.target.value)} />
+              {manualInvalid && <p className="help is-danger">{INVALID_GTIN}</p>}
             </div>
             <div className="control">
-              <button className="button" type="submit" disabled={!locationId || !manualEan.trim()}>
+              <button className="button" type="submit" disabled={!locationId || !manualEan.trim() || manualInvalid}>
                 Buchen
               </button>
             </div>

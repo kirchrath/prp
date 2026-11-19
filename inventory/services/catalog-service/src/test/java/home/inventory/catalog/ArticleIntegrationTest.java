@@ -40,7 +40,12 @@ class ArticleIntegrationTest extends AbstractIntegrationTest {
     }
 
     private static String ean() {
-        return String.valueOf(4_000_000_000_000L + (long) (Math.random() * 999_999_999_999L));
+        String body = String.valueOf(400_000_000_000L + (long) (Math.random() * 99_999_999_999L));
+        int sum = 0;
+        for (int i = body.length() - 1, weight = 3; i >= 0; i--, weight = 4 - weight) {
+            sum += (body.charAt(i) - '0') * weight;
+        }
+        return body + (10 - sum % 10) % 10; // valid EAN-13
     }
 
     @Test
@@ -255,5 +260,30 @@ class ArticleIntegrationTest extends AbstractIntegrationTest {
     void lookupMockDefaultsToNothing() {
         when(lookup.lookup(anyString())).thenReturn(Optional.empty());
         assertThat(lookup.lookup("1")).isEmpty();
+    }
+
+    @Test
+    void barcodesAreCheckedAndNormalized() throws Exception {
+        // UPC-A and GTIN-14 with leading 0 are stored as EAN-13, duplicates collapse
+        UUID id = createArticle(unique("Cornflakes"), null, null, "036000291452", "0036000291452", "04006381333931 ");
+        mvc.perform(get("/api/catalog/articles/" + id).with(USER))
+                .andExpect(jsonPath("$.data.eans").value(Matchers.contains("0036000291452", "4006381333931")));
+        mvc.perform(get("/api/catalog/articles/by-ean/036000291452").with(USER))
+                .andExpect(jsonPath("$.id").value(id.toString()));
+        mvc.perform(get("/api/catalog/articles/lookup/036000291452").with(USER))
+                .andExpect(jsonPath("$.existingArticleId").value(id.toString()));
+
+        // invalid codes are rejected with a readable message
+        String body = "{\"data\":{\"name\":\"X\",\"minStock\":0,\"eans\":[\"4006381333932\"]}}";
+        mvc.perform(json(post("/api/catalog/articles"), body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(Matchers.startsWith("Ungültige EAN")));
+        mvc.perform(get("/api/catalog/articles/by-ean/12345").with(USER)).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/catalog/articles/lookup/12345").with(USER)).andExpect(status().isBadRequest());
+
+        // pending bookings with an invalid code are ignored
+        articles.resolvePendingBarcode("12345");
+        mvc.perform(get("/api/catalog/articles").param("search", "12345").with(USER))
+                .andExpect(jsonPath("$.length()").value(0));
     }
 }
