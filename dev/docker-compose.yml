@@ -1,7 +1,7 @@
 # Local development: infrastructure on localhost, services and frontend run from the IDE / Maven / Vite.
 #   docker compose -f dev/docker-compose.yml up -d
 # PostgreSQL :5432 · Kafka :9092 · Keycloak :8180 (user dev / dev) · Mosquitto :1883 (anonymous)
-# optional profile "ollama": Ollama :11434, pulls the model qwen2.5:7b
+# optional profile "ollama": Ollama :11434, pulls the model qwen3:8b
 name: inventory-dev
 
 services:
@@ -86,7 +86,7 @@ services:
       - ollama
     environment:
       OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: qwen2.5:7b
+      OLLAMA_MODEL: qwen3:8b
     entrypoint: ["/bin/sh", "-c", 'until ollama list >/dev/null 2>&1; do sleep 2; done; ollama pull "$$OLLAMA_MODEL"']
 
 configs:

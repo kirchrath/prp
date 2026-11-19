@@ -56,7 +56,7 @@ cd inventory/services/recipe-service   && mvn spring-boot:run   # :8085
 
 KI für Rezept-Importe (nur dafür nötig – alles andere funktioniert ohne):
 
-* lokal: `docker compose -f dev/docker-compose.yml --profile ollama up -d` (lädt einmalig `qwen2.5:7b`,
+* lokal: `docker compose -f dev/docker-compose.yml --profile ollama up -d` (lädt einmalig `qwen3:8b`,
   ~5 GB), dann recipe-service normal starten (`AI_PROVIDER=ollama` ist Standard);
 * oder mit API-Key: `AI_PROVIDER=anthropic ANTHROPIC_API_KEY=… mvn spring-boot:run` (bzw. `openai` /
   `OPENAI_API_KEY`).

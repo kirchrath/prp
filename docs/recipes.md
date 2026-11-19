@@ -54,11 +54,11 @@ Die KI wird nur für Importe gebraucht. Auswahl in `inventory/.env`:
 
 | `AI_PROVIDER` | Voraussetzung | Hinweise |
 |---|---|---|
-| `ollama` (Standard) | infra-Stack mit `docker compose --profile ollama up -d` | läuft lokal, keine Kosten, Daten bleiben zuhause. Modell per `OLLAMA_MODEL` (Standard `qwen2.5:7b`, ~5 GB Download, ~6–8 GB RAM; GPU beschleunigt deutlich). Der Dienst `ollama-pull` lädt das Modell einmalig. |
-| `anthropic` | `ANTHROPIC_API_KEY` | sehr zuverlässige Strukturierung; kostet pro Import. Modell per `ANTHROPIC_MODEL`. |
-| `openai` | `OPENAI_API_KEY` | wie Anthropic; Modell per `OPENAI_MODEL`. |
+| `ollama` (Standard) | infra-Stack mit `docker compose --profile ollama up -d` | läuft lokal, keine Kosten, Daten bleiben zuhause. Modell per `OLLAMA_MODEL` (Standard `qwen3:8b`, ~5 GB Download, ~8 GB RAM; GPU beschleunigt deutlich). Der Dienst `ollama-pull` lädt das Modell einmalig. |
+| `anthropic` | `ANTHROPIC_API_KEY` | sehr zuverlässige Strukturierung; kostet pro Import Bruchteile eines Cents bis wenige Cent. Modell per `ANTHROPIC_MODEL` (Standard `claude-haiku-5-5`). |
+| `openai` | `OPENAI_API_KEY` | wie Anthropic; Modell per `OPENAI_MODEL` (Standard `gpt-5-mini`). |
 
-Die Modellnamen in `.env.example` sind Vorschläge – trage ein Modell ein, das dein Konto bzw. deine
+Welches Modell sich lohnt, steht in der [Modellempfehlung im README](../README.md#ki-modell-empfehlung). Die Modellnamen in `.env.example` sind Vorschläge – trage ein Modell ein, das dein Konto bzw. deine
 Ollama-Installation anbietet. Kleinere Ollama-Modelle liefern bei langen Rezepten gelegentlich unvollständige
 Strukturen; der Editor zeigt das Ergebnis immer zur Kontrolle an. Ist die KI nicht erreichbar oder liefert
 nichts Verwertbares, meldet der Import einen Fehler (HTTP 502), manuelles Anlegen funktioniert weiter.

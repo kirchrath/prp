@@ -107,11 +107,12 @@ services:
       # AI for recipe imports: ollama (local, infra profile "ollama") | anthropic | openai
       AI_PROVIDER: ${AI_PROVIDER:-ollama}
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      OLLAMA_THINK: ${OLLAMA_THINK:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-unset}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-5-5}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-unset}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
     labels:
       - traefik.enable=true
       - traefik.http.routers.inventory-recipe.rule=Host(`${INVENTORY_HOST}`) && PathPrefix(`/api/recipe`)

@@ -27,25 +27,25 @@ spring:
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
-        options:
-          model: ${OLLAMA_MODEL:qwen2.5:7b}
-          temperature: 0.1
+        model: ${OLLAMA_MODEL:qwen3:8b}
+        temperature: 0.1
+        # reasoning mode of thinking models (qwen3): false = faster, enough for structuring
+        think: ${OLLAMA_THINK:false}
       init:
         # the model is pulled by the infra stack (service ollama-pull), not on startup
         pull-model-strategy: never
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:unset}
       chat:
-        options:
-          model: ${ANTHROPIC_MODEL:claude-sonnet-5-5}
-          temperature: 0.1
-          max-tokens: 4000
+        model: ${ANTHROPIC_MODEL:claude-haiku-5-5}
+        # no temperature: current Claude models reject non-default sampling values (HTTP 400)
+        # thinking tokens count towards max-tokens
+        max-tokens: 16000
     openai:
       api-key: ${OPENAI_API_KEY:unset}
       chat:
-        options:
-          model: ${OPENAI_MODEL:gpt-4.1-mini}
-          temperature: 0.1
+        model: ${OPENAI_MODEL:gpt-5-mini}
+        # no temperature: GPT-5 models only accept the default value
   jackson:
     default-property-inclusion: non_null
   kafka:

@@ -42,7 +42,7 @@ geänderte Variablen und erstellt die betroffenen Container neu).
 | `KEYCLOAK_ADMIN_PASSWORD` | `change-me` | Passwort dazu. **Vor dem ersten Start ändern.** Spätere Änderungen hier wirken nicht – dann in der Keycloak-Admin-Oberfläche ändern. |
 | `KEYCLOAK_DB_PASSWORD` | `change-me-too` | Passwort der Keycloak-Datenbank (PostgreSQL im infra-Stack). Wird beim ersten Start der Datenbank gesetzt; später nur zusammen mit der Datenbank änderbar. |
 | `MQTT_PORT` | `1883` | Port auf dem Docker-Host, unter dem die Scanner den Broker erreichen. |
-| `OLLAMA_MODEL` | `qwen2.5:7b` | Nur mit Profil `ollama`: Modell, das der Dienst `ollama-pull` einmalig herunterlädt. Muss zu `OLLAMA_MODEL` in `inventory/.env` passen. |
+| `OLLAMA_MODEL` | `qwen3:8b` | Nur mit Profil `ollama`: Modell, das der Dienst `ollama-pull` einmalig herunterlädt. Muss zu `OLLAMA_MODEL` in `inventory/.env` passen. |
 
 ### Dienste des infra-Stacks
 
@@ -122,11 +122,12 @@ ausgegeben), `delete <name>` entfernt sie; danach lädt Mosquitto die Dateien au
 | `MQTT_PASSWORD` | `change-me` | device-service | Passwort des MQTT-Benutzers `device-service` (ausgegeben von `mqtt-user.sh add device-service`). |
 | `LOOKUP_ENABLED` | `true` | catalog-service | Unbekannte Barcodes in Open Food Facts, Open Products Facts und Open Beauty Facts nachschlagen. `false`: keine Internetabfragen, unbekannte Barcodes landen direkt in der Inbox. |
 | `AI_PROVIDER` | `ollama` | recipe-service | KI für Rezept-Importe: `ollama`, `anthropic` oder `openai`. Ohne erreichbare KI funktioniert alles außer dem Import. |
-| `OLLAMA_MODEL` | `qwen2.5:7b` | recipe-service | Ollama-Modell. Muss in Ollama vorhanden sein (siehe `OLLAMA_MODEL` im infra-Stack). |
+| `OLLAMA_MODEL` | `qwen3:8b` | recipe-service | Ollama-Modell. Muss in Ollama vorhanden sein (siehe `OLLAMA_MODEL` im infra-Stack). Empfehlung: [README → KI-Modell](../README.md#ki-modell-empfehlung). |
+| `OLLAMA_THINK` | `false` | recipe-service | Denkmodus von „Thinking“-Modellen wie qwen3 (`true`, `false`, `low`, `medium`, `high`). `false` ist deutlich schneller und reicht für die Strukturierung. |
 | `ANTHROPIC_API_KEY` | – | recipe-service | API-Key, nur bei `AI_PROVIDER=anthropic`. |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | recipe-service | Modellname bei Anthropic. |
+| `ANTHROPIC_MODEL` | `claude-haiku-5-5` | recipe-service | Modellname bei Anthropic. |
 | `OPENAI_API_KEY` | – | recipe-service | API-Key, nur bei `AI_PROVIDER=openai`. |
-| `OPENAI_MODEL` | `gpt-4.1-mini` | recipe-service | Modellname bei OpenAI. |
+| `OPENAI_MODEL` | `gpt-5-mini` | recipe-service | Modellname bei OpenAI. |
 
 Die Modellnamen sind Vorschläge; eintragen, was das eigene Konto bzw. die Ollama-Installation anbietet.
 
@@ -226,11 +227,11 @@ Fest im Code: QoS 1, automatische Wiederverbindung, Keep-Alive 30 s, Clean Sessi
 |---|---|---|---|
 | `spring.ai.model.chat` | `AI_PROVIDER` | `ollama` | Welcher KI-Anbieter aktiv ist (`ollama`, `anthropic`, `openai`). Embedding-, Bild-, Audio- und Moderationsmodelle sind abgeschaltet. |
 | `spring.ai.ollama.base-url` | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama-Adresse. |
-| `spring.ai.ollama.chat.options.model` | `OLLAMA_MODEL` | `qwen2.5:7b` | Ollama-Modell. |
+| `spring.ai.ollama.chat.model` / `…chat.think` | `OLLAMA_MODEL` / `OLLAMA_THINK` | `qwen3:8b` / `false` | Ollama-Modell und Denkmodus. |
 | `spring.ai.ollama.init.pull-model-strategy` | – | `never` | Der Service lädt kein Modell selbst (das macht `ollama-pull`), damit der Start nicht minutenlang blockiert. |
-| `spring.ai.anthropic.api-key` / `…chat.options.model` | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | `unset` / `claude-sonnet-5-5` | Anthropic-Zugang und Modell. `max-tokens` 4000. |
-| `spring.ai.openai.api-key` / `…chat.options.model` | `OPENAI_API_KEY` / `OPENAI_MODEL` | `unset` / `gpt-4.1-mini` | OpenAI-Zugang und Modell. |
-| `…chat.options.temperature` | – | `0.1` (alle Anbieter) | Niedrig = möglichst gleichbleibende, sachliche Strukturierung. |
+| `spring.ai.anthropic.api-key` / `…chat.model` | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | `unset` / `claude-haiku-5-5` | Anthropic-Zugang und Modell. `max-tokens` 16000 (Denk-Tokens zählen mit). |
+| `spring.ai.openai.api-key` / `…chat.model` | `OPENAI_API_KEY` / `OPENAI_MODEL` | `unset` / `gpt-5-mini` | OpenAI-Zugang und Modell. |
+| `spring.ai.ollama.chat.temperature` | – | `0.1` | Niedrig = möglichst gleichbleibende, sachliche Strukturierung. Bei Anthropic und OpenAI bewusst nicht gesetzt: aktuelle Claude- und GPT-5-Modelle lehnen abweichende Werte mit HTTP 400 ab. |
 | `recipe.fetch-timeout` | `RECIPE_FETCHTIMEOUT` | `10s` | Zeitlimit beim Laden einer Rezeptseite. |
 | `recipe.user-agent` | `RECIPE_USERAGENT` | `Mozilla/5.0 (compatible; HomeInventory/0.1)` | Kennung beim Laden von Rezeptseiten (manche Portale lehnen unbekannte Clients ab). |
 | `recipe.max-page-text` | `RECIPE_MAXPAGETEXT` | `20000` | Zeichen des Seitentexts, die bei Seiten ohne strukturierte Daten an die KI gehen (begrenzt Kosten/Laufzeit). |
@@ -307,7 +308,7 @@ Werte liegen im Flash (NVS, Namensraum `scanner`).
 | Kafka | `localhost:9092` | KRaft, ein Broker |
 | Keycloak | `http://localhost:8180` | `start-dev`, Admin `admin`/`admin`, Realm-Import mit `INVENTORY_HOST=localhost`; Benutzer `dev`/`dev` wird automatisch angelegt |
 | Mosquitto | `localhost:1883` | anonym erlaubt, keine ACL |
-| Ollama (Profil `ollama`) | `localhost:11434` | lädt `qwen2.5:7b` |
+| Ollama (Profil `ollama`) | `localhost:11434` | lädt `qwen3:8b` |
 
 Diese Werte entsprechen genau den Standardwerten in `application.yml` und `frontend/public/config.js` –
 deshalb starten die Services lokal ohne weitere Konfiguration. **Nur für die Entwicklung verwenden**
